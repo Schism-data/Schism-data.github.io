@@ -70,7 +70,7 @@
                     <a href="#capabilities" class="text-gray-300 hover:text-cyan-400 transition-colors">R&D Focus</a>
                     <a href="#theses" class="text-gray-300 hover:text-cyan-400 transition-colors">Theses</a>
                     <a href="#strategy" class="text-gray-300 hover:text-cyan-400 transition-colors">Strategy</a>
-                    <a href="#control-panel" class="text-gray-300 hover:text-cyan-400 transition-colors">Control Panel</a>
+                    <a href="#connect-with-us" class="text-gray-300 hover:text-cyan-400 transition-colors">Connect With Us</a>
                 </nav>
                 <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-cyan-400">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
@@ -82,7 +82,7 @@
                  <a href="#capabilities" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">R&D Focus</a>
                  <a href="#theses" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Theses</a>
                  <a href="#strategy" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Strategy</a>
-                 <a href="#control-panel" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Control Panel</a>
+                 <a href="#connect-with-us" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Connect With Us</a>
             </div>
         </header>
 
@@ -91,7 +91,7 @@
             <section id="hero" class="content-section container mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col justify-center items-center min-h-screen">
                 <h2 class="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight">Schism doesn’t fix people, it fixes the gap</h2>
                 <p class="text-lg md:text-xl text-gray-400 max-w-3xl">What TCP/IP did for data, Schism will do for human meaning. We build the missing infrastructure for human understanding in a digital world.</p>
-                <a href="#control-panel" class="mt-8 px-8 py-3 bg-cyan-500 text-black font-semibold rounded-lg hover:bg-cyan-400 transition-all transform hover:scale-105">Join the Protocol</a>
+                <a href="#connect-with-us" class="mt-8 px-8 py-3 bg-cyan-500 text-black font-semibold rounded-lg hover:bg-cyan-400 transition-all transform hover:scale-105">Join the Protocol</a>
             </section>
 
             <section id="manifesto" class="content-section bg-black bg-opacity-30">
@@ -118,7 +118,7 @@
             <section id="capabilities" class="content-section">
                 <div class="container mx-auto px-4 sm:px-6 lg:px-8">
                     <h3 class="text-3xl font-bold text-center mb-12 text-cyan-400">Research & Development Focus</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         <div class="p-6 rounded-lg glass-effect transform hover:-translate-y-2 transition-transform">
                             <h4 class="text-xl font-bold mb-3 text-white">High-Dimensional Context Protocols</h4>
                             <p class="text-gray-400">Developing novel protocols for embedding nuanced human context into high-dimensional data structures, enabling systems to understand relational dynamics beyond simple sentiment analysis.</p>
@@ -135,6 +135,10 @@
                             <h4 class="text-xl font-bold mb-3 text-white">Consent-Based AI Architectures</h4>
                             <p class="text-gray-400">Pioneering local-first, privacy-preserving AI that offers interpretive nudges and perspective previews without surveillance, building trust by design and preserving user agency.</p>
                         </div>
+                         <a href="Data Exploration/Behavior theory.html" class="block p-6 rounded-lg glass-effect transform hover:-translate-y-2 transition-transform">
+                            <h4 class="text-xl font-bold mb-3 text-white">Theories of Behavior Change</h4>
+                            <p class="text-gray-400">Creating accurate predictive algorithms for behavior analysis to optimize integration workflow.</p>
+                        </a>
                     </div>
                 </div>
             </section>
@@ -188,10 +192,10 @@
                 </div>
             </section>
 
-            <!-- Control Panel Section -->
-            <section id="control-panel" class="content-section bg-black bg-opacity-30">
+            <!-- Connect With Us Section -->
+            <section id="connect-with-us" class="content-section bg-black bg-opacity-30">
                  <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
-                     <h3 class="text-3xl font-bold text-center mb-12 text-cyan-400">User Control Panel</h3>
+                     <h3 class="text-3xl font-bold text-center mb-12 text-cyan-400">Connect With Us</h3>
                      
                      <!-- Logged Out State -->
                      <div id="auth-container" class="text-center">
@@ -285,7 +289,7 @@
                 setupUI();
             } catch (e) {
                 console.error("Firebase initialization failed.", e);
-                document.getElementById('control-panel').innerHTML = `<p class="text-red-500 text-center">Firebase configuration is invalid. Please check the console.</p>`;
+                document.getElementById('connect-with-us').innerHTML = `<p class="text-red-500 text-center">Firebase configuration is invalid. Please check the console.</p>`;
             }
         }
 
@@ -548,4 +552,4 @@
         animate();
     </script>
 </body>
-</html>
+</ht
