@@ -40,6 +40,17 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+        .accordion-button svg {
+            transition: transform 0.3s ease;
+        }
+        .accordion-button.open svg {
+            transform: rotate(180deg);
+        }
         #profile-completion-bar {
             transition: width 0.5s ease-in-out;
         }
@@ -58,6 +69,7 @@
                     <a href="#manifesto" class="text-gray-300 hover:text-cyan-400 transition-colors">Manifesto</a>
                     <a href="#capabilities" class="text-gray-300 hover:text-cyan-400 transition-colors">R&D Focus</a>
                     <a href="#theses" class="text-gray-300 hover:text-cyan-400 transition-colors">Theses</a>
+                    <a href="#strategy" class="text-gray-300 hover:text-cyan-400 transition-colors">Strategy</a>
                     <a href="#control-panel" class="text-gray-300 hover:text-cyan-400 transition-colors">Control Panel</a>
                 </nav>
                 <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-cyan-400">
@@ -69,6 +81,7 @@
                  <a href="#manifesto" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Manifesto</a>
                  <a href="#capabilities" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">R&D Focus</a>
                  <a href="#theses" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Theses</a>
+                 <a href="#strategy" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Strategy</a>
                  <a href="#control-panel" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Control Panel</a>
             </div>
         </header>
@@ -81,34 +94,115 @@
                 <a href="#control-panel" class="mt-8 px-8 py-3 bg-cyan-500 text-black font-semibold rounded-lg hover:bg-cyan-400 transition-all transform hover:scale-105">Join the Protocol</a>
             </section>
 
+            <section id="manifesto" class="content-section bg-black bg-opacity-30">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-12">
+                        <h3 class="text-3xl font-bold text-cyan-400">Schism: The Living Manifesto</h3>
+                        <p class="text-xl text-gray-300 mt-2">Schism doesn’t fix people—it fixes the gap between them.</p>
+                    </div>
+                    <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        <div class="text-gray-300"><strong class="text-cyan-400">1.</strong> Miscommunication Isn’t a Flaw — It’s a System Error.</div>
+                        <div class="text-gray-300"><strong class="text-cyan-400">2.</strong> Communication Is Infrastructure.</div>
+                        <div class="text-gray-300"><strong class="text-cyan-400">3.</strong> Context Is a Right, Not a Feature.</div>
+                        <div class="text-gray-300"><strong class="text-cyan-400">4.</strong> Consent Is the Protocol.</div>
+                        <div class="text-gray-300"><strong class="text-cyan-400">5.</strong> Privacy Is Non-Negotiable.</div>
+                        <div class="text-gray-300"><strong class="text-cyan-400">6.</strong> We Assist, Not Correct.</div>
+                        <div class="text-gray-300"><strong class="text-cyan-400">7.</strong> Divergence Is a Design Input.</div>
+                        <div class="text-gray-300"><strong class="text-cyan-400">8.</strong> Trust Is Our Metric.</div>
+                        <div class="text-gray-300"><strong class="text-cyan-400">9.</strong> We Build With, Not For.</div>
+                        <div class="text-gray-300"><strong class="text-cyan-400">10.</strong> This Is Protocol, Not Platform.</div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="capabilities" class="content-section">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <h3 class="text-3xl font-bold text-center mb-12 text-cyan-400">Research & Development Focus</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="p-6 rounded-lg glass-effect transform hover:-translate-y-2 transition-transform">
+                            <h4 class="text-xl font-bold mb-3 text-white">High-Dimensional Context Protocols</h4>
+                            <p class="text-gray-400">Developing novel protocols for embedding nuanced human context into high-dimensional data structures, enabling systems to understand relational dynamics beyond simple sentiment analysis.</p>
+                        </div>
+                        <div class="p-6 rounded-lg glass-effect transform hover:-translate-y-2 transition-transform">
+                            <h4 class="text-xl font-bold mb-3 text-white">Quaternion Processing & Symbolic AI</h4>
+                            <p class="text-gray-400">Leveraging quaternion mathematics for efficient visual learning and behavior analysis, combined with symbolic AI to solve for processing speed and relational logic in communication.</p>
+                        </div>
+                        <div class="p-6 rounded-lg glass-effect transform hover:-translate-y-2 transition-transform">
+                            <h4 class="text-xl font-bold mb-3 text-white">Neurodivergent Mind Mapping</h4>
+                            <p class="text-gray-400">Creating dynamic mind-mapping tools that model neurodivergent thought patterns, preventing misalignments by enhancing self-awareness and optimizing team workflows.</p>
+                        </div>
+                         <div class="p-6 rounded-lg glass-effect transform hover:-translate-y-2 transition-transform">
+                            <h4 class="text-xl font-bold mb-3 text-white">Consent-Based AI Architectures</h4>
+                            <p class="text-gray-400">Pioneering local-first, privacy-preserving AI that offers interpretive nudges and perspective previews without surveillance, building trust by design and preserving user agency.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="theses" class="content-section bg-black bg-opacity-30">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <h3 class="text-3xl font-bold text-center mb-12 text-cyan-400">Five Expanded Core Theses</h4>
+                    <div class="max-w-4xl mx-auto space-y-8">
+                        <div class="glass-effect rounded-lg p-6">
+                            <h4 class="text-xl font-semibold text-white mb-2"><strong class="text-cyan-400">1.</strong> Miscommunication is a structural failure, not a personal flaw.</h4>
+                            <p class="text-gray-300">Current digital systems encode content, not context. The result is systemic friction, especially for neurodivergent, cross-cultural, and remote communicators. Communication breaks not because people are broken—but because the infrastructure is blind to meaning.</p>
+                        </div>
+                        <div class="glass-effect rounded-lg p-6">
+                            <h4 class="text-xl font-semibold text-white mb-2"><strong class="text-cyan-400">2.</strong> Emotional labor is the invisible cost of digital survival.</h4>
+                            <p class="text-gray-300">Miscommunication imposes a disproportionate cognitive and emotional tax on those whose communication styles deviate from dominant norms. This labor is uncompensated, unacknowledged, and structurally required in current platforms.</p>
+                        </div>
+                        <div class="glass-effect rounded-lg p-6">
+                            <h4 class="text-xl font-semibold text-white mb-2"><strong class="text-cyan-400">3.</strong> Clarity can be protocolized without compromising authenticity.</h4>
+                            <p class="text-gray-300">Human nuance is not too messy to model—it’s just been ignored in design. By encoding and sharing user-declared context vectors, we can scaffold mutual understanding without enforcing uniformity.</p>
+                        </div>
+                        <div class="glass-effect rounded-lg p-6">
+                            <h4 class="text-xl font-semibold text-white mb-2"><strong class="text-cyan-400">4.</strong> Consent-based AI can offer interpretive nudges that reduce harm.</h4>
+                            <p class="text-gray-300">By processing on-device and offering perspective previews (not corrections), assistive AI can illuminate potential misreads before messages are sent—building trust and preserving autonomy.</p>
+                        </div>
+                         <div class="glass-effect rounded-lg p-6">
+                            <h4 class="text-xl font-semibold text-white mb-2"><strong class="text-cyan-400">5.</strong> Protocol-layer solutions can shift communication equity.</h4>
+                            <p class="text-gray-300">Instead of teaching marginalized users to navigate dominant norms, Schism proposes flipping the model: embedding adaptive, interpretable, and equitable infrastructure into the systems themselves.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+             <section id="strategy" class="content-section">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <h3 class="text-3xl font-bold text-center mb-12 text-cyan-400">Our Strategy & Market Opportunity</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
+                        <div>
+                            <h4 class="text-2xl font-bold mb-4 text-white">Market Opportunity</h4>
+                             <p class="text-gray-400 mb-6">Schism addresses a profound gap by creating a new category—contextual communication infrastructure. The annual cost of miscommunication is $1.2 trillion in the US alone, representing a massive, untapped market for solutions that enhance clarity and trust.</p>
+                             <canvas id="marketChart"></canvas>
+                        </div>
+                        <div>
+                             <h4 class="text-2xl font-bold mb-4 text-white">5-Year Revenue Projections</h4>
+                             <p class="text-gray-400 mb-6">Our growth is projected across conservative, base, and optimistic scenarios, driven by individual subscriptions and enterprise adoption. We aim for sustainable growth aligned with our ethical monetization principles.</p>
+                             <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="max-w-4xl mx-auto space-y-4" id="accordion-container">
+                        <!-- Accordion Items will be injected here -->
+                    </div>
+                </div>
+            </section>
+
             <!-- Control Panel Section -->
-            <section id="control-panel" class="content-section">
+            <section id="control-panel" class="content-section bg-black bg-opacity-30">
                  <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
                      <h3 class="text-3xl font-bold text-center mb-12 text-cyan-400">User Control Panel</h3>
                      
                      <!-- Logged Out State -->
-                     <div id="auth-container">
-                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                             <!-- Sign In Form -->
-                             <div class="glass-effect rounded-lg p-8">
-                                 <h4 class="text-2xl font-bold text-white mb-6 text-center">Sign In</h4>
-                                 <form id="login-form" class="space-y-4">
-                                     <input type="email" id="login-email" placeholder="Email" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
-                                     <input type="password" id="login-password" placeholder="Password" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
-                                     <button type="submit" class="w-full px-8 py-3 bg-cyan-500 text-black font-semibold rounded-lg hover:bg-cyan-400 transition-all">Sign In</button>
-                                     <p id="login-error" class="text-red-500 text-sm h-4 text-center"></p>
-                                 </form>
-                             </div>
-                             <!-- Register Form -->
-                              <div class="glass-effect rounded-lg p-8">
-                                 <h4 class="text-2xl font-bold text-white mb-6 text-center">Register</h4>
-                                 <form id="register-form" class="space-y-4">
-                                     <input type="email" id="register-email" placeholder="Email" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
-                                     <input type="password" id="register-password" placeholder="Password" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
-                                     <button type="submit" class="w-full px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-500 transition-all">Register</button>
-                                     <p id="register-error" class="text-red-500 text-sm h-4 text-center"></p>
-                                 </form>
-                             </div>
+                     <div id="auth-container" class="text-center">
+                         <div class="glass-effect rounded-lg p-8 inline-block">
+                             <h4 class="text-2xl font-bold text-white mb-4">Join the Protocol</h4>
+                             <p class="text-gray-400 mb-6">Connect with a single click to manage your profile.</p>
+                             <button id="sso-signin-btn" class="w-full flex items-center justify-center px-8 py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-all">
+                                 <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48"><path fill="#4285F4" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#34A853" d="M6.306 14.691L22.99 29.381l17.069-17.069L23.001 6.306z"></path><path fill="#FBBC05" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C8.508 39.524 15.658 44 24 44z"></path><path fill="#EA4335" d="M24 12c-3.213 0-6.03 1.346-8.086 3.518l5.88 5.88C22.627 20.341 24 18.5 24 18.5s-1.875-2.625-4.438-2.625c-1.5 0-2.813.75-3.75 1.875L12.75 15C15.188 12.813 19.375 12 24 12z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
+                                 Sign In with Google
+                             </button>
+                             <p id="sso-error" class="text-red-500 text-sm h-4 mt-4 text-center"></p>
                          </div>
                      </div>
 
@@ -119,8 +213,6 @@
                                 <h4 class="text-2xl font-bold text-white">Your Profile</h4>
                                 <button id="signOutBtn" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-500 transition-all text-sm">Sign Out</button>
                             </div>
-
-                            <!-- Profile Completion Tracker -->
                             <div class="mb-8">
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-sm font-medium text-gray-300">Profile Completion</span>
@@ -130,21 +222,16 @@
                                     <div id="profile-completion-bar" class="bg-cyan-500 h-2.5 rounded-full" style="width: 0%"></div>
                                 </div>
                             </div>
-                            
                             <form id="profile-form" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                                <!-- Personal Info -->
                                 <input type="text" id="profile-name" placeholder="Name" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 <input type="text" id="profile-org" placeholder="Organization / University" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 <input type="text" id="profile-position" placeholder="Job Position" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 <input type="text" id="profile-interests" placeholder="Interests (comma-separated)" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                                
-                                <!-- Social Links -->
                                 <input type="text" id="profile-github" placeholder="GitHub Handle" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 <input type="text" id="profile-twitter" placeholder="Twitter (X) Handle" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 <input type="text" id="profile-linkedin" placeholder="LinkedIn Handle" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 <input type="text" id="profile-reddit" placeholder="Reddit Handle" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 <input type="text" id="profile-other" placeholder="Other Social Link" class="w-full md:col-span-2 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-
                                 <div class="md:col-span-2 mt-4">
                                      <button type="submit" class="w-full px-8 py-3 bg-cyan-500 text-black font-semibold rounded-lg hover:bg-cyan-400 transition-all">Save Profile</button>
                                      <p id="profile-save-status" class="text-green-400 text-sm h-4 text-center mt-2"></p>
@@ -153,18 +240,6 @@
                         </div>
                      </div>
                 </div>
-            </section>
-
-            <section id="manifesto" class="content-section bg-black bg-opacity-30">
-                 <!-- Manifesto Content Here -->
-            </section>
-            
-            <section id="capabilities" class="content-section">
-                 <!-- R&D Focus Content Here -->
-            </section>
-
-            <section id="theses" class="content-section bg-black bg-opacity-30">
-                 <!-- Theses Content Here -->
             </section>
         </main>
 
@@ -175,24 +250,26 @@
 
 
     <script type="module">
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
-        // IMPORTANT: Replace with your actual Firebase config object
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyAnBBcdczugJzl_5u1aLJb-OiHvvtDgHvY",
+            authDomain: "gitlabs-3e081.firebaseapp.com",
+            projectId: "gitlabs-3e081",
+            storageBucket: "gitlabs-3e081.appspot.com",
+            messagingSenderId: "46943115268",
+            appId: "1:46943115268:web:2e587728d0176fe67d7d51",
+            measurementId: "G-QEN4TVETFS"
         };
         
         // --- Global State ---
-        let auth, db;
+        let auth, db, analytics;
         let unsubscribeProfile;
+        let marketChartInstance, revenueChartInstance;
         const PROFILE_FIELDS = ['profile-name', 'profile-org', 'profile-position', 'profile-interests', 'profile-github', 'profile-twitter', 'profile-linkedin', 'profile-reddit', 'profile-other'];
 
         // --- Initialize Page ---
@@ -202,32 +279,98 @@
                 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
                 auth = getAuth(app);
                 db = getFirestore(app);
+                analytics = getAnalytics(app);
                 setupEventListeners();
                 setupAuthObserver();
+                setupUI();
             } catch (e) {
-                console.error("Firebase initialization failed. Make sure you have replaced the placeholder configuration.", e);
-                document.getElementById('control-panel').innerHTML = `<p class="text-red-500 text-center">Firebase configuration is invalid. Please update the script.</p>`;
+                console.error("Firebase initialization failed.", e);
+                document.getElementById('control-panel').innerHTML = `<p class="text-red-500 text-center">Firebase configuration is invalid. Please check the console.</p>`;
             }
-            setupUI();
         }
 
         // --- UI Setup ---
         function setupUI() {
+            // Mobile Menu
             const mobileMenuButton = document.getElementById('mobile-menu-button');
             const mobileMenu = document.getElementById('mobile-menu');
             mobileMenuButton.onclick = () => mobileMenu.classList.toggle('hidden');
+            
+            // Accordion
+            const accordionData = [
+                 { title: 'Roadmap & Vision', content: `<strong>Phase 1: Foundation</strong> - Build the core Human Context Protocol for neurodivergent professionals & cross-cultural teams.<br><br><strong>Phase 2: Expansion</strong> - Introduce cross-platform portability & team visualization for organizations.<br><br><strong>Phase 3: Maturity</strong> - Roll out Self-Sovereign Identity, a full API ecosystem, & advanced analytics.` },
+                { title: 'Go-to-Market Strategy', content: `Our strategy is rooted in community co-creation. We partner with neurodivergent-led organizations and run Context Labs to design the protocol with our core users, growing through trust-based marketing and education.`},
+                { title: 'Competitive Landscape', content: `We are creating a new category. Unlike corrective tools (e.g., Grammarly) or simple messengers (e.g., Slack), our privacy-first, protocol-based approach is a key differentiator that surveillance-based models cannot replicate.` },
+                { title: 'Ethical Monetization', content: `We use an open-core model with a free protocol layer and paid tiers for individuals and organizations, rejecting surveillance capitalism. Revenue is generated from premium features, enterprise implementations, and a creator-first marketplace (80/20 split).` }
+            ];
+            const accordionContainer = document.getElementById('accordion-container');
+            accordionContainer.innerHTML = ''; // Clear previous content
+            accordionData.forEach(item => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'rounded-lg glass-effect overflow-hidden';
+                wrapper.innerHTML = `
+                    <button class="accordion-button w-full flex justify-between items-center text-left text-white font-semibold p-5">
+                        <span>${item.title}</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content"><div class="p-5 pt-0 text-gray-300">${item.content}</div></div>`;
+                accordionContainer.appendChild(wrapper);
+            });
+            
+            accordionContainer.onclick = e => {
+                const button = e.target.closest('.accordion-button');
+                if (button) {
+                    const content = button.nextElementSibling;
+                    button.classList.toggle('open');
+                    content.style.maxHeight = content.style.maxHeight ? null : content.scrollHeight + "px";
+                }
+            };
+
+            setupCharts();
+        }
+        
+        function setupCharts() {
+            const chartTextColor = '#e5e7eb';
+            const chartGridColor = 'rgba(255, 255, 255, 0.1)';
+            Chart.defaults.color = chartTextColor;
+            Chart.defaults.borderColor = chartGridColor;
+            
+            const marketCtx = document.getElementById('marketChart').getContext('2d');
+            if (marketChartInstance) marketChartInstance.destroy();
+            marketChartInstance = new Chart(marketCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['TAM ($50B)', 'SAM ($4B)', 'SOM ($26M)'],
+                    datasets: [{ label: 'Market Size', data: [50, 4, 0.026], backgroundColor: ['#06b6d433', '#06b6d488', '#06b6d4'], borderColor: '#0891b2', borderWidth: 1 }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'top' } } }
+            });
+
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            if (revenueChartInstance) revenueChartInstance.destroy();
+            revenueChartInstance = new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Y1', 'Y2', 'Y3', 'Y4', 'Y5'],
+                    datasets: [
+                        { label: 'Base Case ($M)', data: [0, 0.25, 2.2, 10, 26.46], borderColor: '#06b6d4', backgroundColor: '#06b6d488', tension: 0.1, fill: true },
+                        { label: 'Conservative ($M)', data: [0, 0.15, 1.5, 6, 18], borderColor: '#64748b', backgroundColor: '#64748b33', tension: 0.1, hidden: true },
+                        { label: 'Optimistic ($M)', data: [0, 0.35, 3, 15, 35], borderColor: '#22d3ee', backgroundColor: '#22d3ee33', tension: 0.1, hidden: true }
+                    ]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: $${ctx.parsed.y}M` } } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'ARR ($M)' } } } }
+            });
         }
 
         // --- Authentication ---
         function setupAuthObserver() {
             const authContainer = document.getElementById('auth-container');
             const profileContainer = document.getElementById('profile-container');
-
             onAuthStateChanged(auth, user => {
                 if (user) {
                     authContainer.classList.add('hidden');
                     profileContainer.classList.remove('hidden');
-                    loadUserProfile(user.uid);
+                    loadUserProfile(user);
                 } else {
                     authContainer.classList.remove('hidden');
                     profileContainer.classList.add('hidden');
@@ -237,58 +380,46 @@
         }
 
         function setupEventListeners() {
-            // Forms
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
-            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            document.getElementById('sso-signin-btn').addEventListener('click', handleGoogleSignIn);
             document.getElementById('profile-form').addEventListener('submit', handleProfileSave);
             document.getElementById('signOutBtn').addEventListener('click', () => signOut(auth));
-            
-            // Profile completion tracker listener
             PROFILE_FIELDS.forEach(id => {
                 document.getElementById(id).addEventListener('input', updateProfileCompletion);
             });
         }
-
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const errorEl = document.getElementById('login-error');
+        
+        async function handleGoogleSignIn() {
+            const provider = new GoogleAuthProvider();
+            const errorEl = document.getElementById('sso-error');
+            errorEl.textContent = '';
             try {
-                await signInWithEmailAndPassword(auth, email, password);
-                errorEl.textContent = '';
+                await signInWithPopup(auth, provider);
             } catch (error) {
-                errorEl.textContent = error.message;
-            }
-        }
-
-        async function handleRegister(e) {
-            e.preventDefault();
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const errorEl = document.getElementById('register-error');
-            try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                errorEl.textContent = '';
-            } catch (error) {
-                errorEl.textContent = error.message;
+                errorEl.textContent = "Sign in failed. Please try again.";
+                console.error("SSO Error:", error.code, error.message);
             }
         }
 
         // --- Profile Management ---
-        async function loadUserProfile(uid) {
+        async function loadUserProfile(user) {
             if (unsubscribeProfile) unsubscribeProfile();
-            const profileDocRef = doc(db, `users/${uid}/profile/data`);
-
-            const docSnap = await getDoc(profileDocRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                PROFILE_FIELDS.forEach(id => {
-                    const key = id.replace('profile-', '');
-                    document.getElementById(id).value = data[key] || '';
-                });
-            }
-            updateProfileCompletion();
+            const profileDocRef = doc(db, `users/${user.uid}`);
+            
+            unsubscribeProfile = onSnapshot(profileDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    PROFILE_FIELDS.forEach(id => {
+                        const key = id.replace('profile-', '');
+                        document.getElementById(id).value = data[key] || '';
+                    });
+                } else {
+                    // Pre-fill name from Google account on first login
+                     document.getElementById('profile-name').value = user.displayName || '';
+                }
+                 updateProfileCompletion();
+            }, (error) => {
+                console.error("Error listening to profile:", error);
+            });
         }
         
         async function handleProfileSave(e) {
@@ -305,7 +436,7 @@
             const statusEl = document.getElementById('profile-save-status');
             statusEl.textContent = 'Saving...';
             try {
-                const profileDocRef = doc(db, `users/${user.uid}/profile/data`);
+                const profileDocRef = doc(db, `users/${user.uid}`);
                 await setDoc(profileDocRef, profileData, { merge: true });
                 statusEl.textContent = 'Profile Saved!';
                 setTimeout(() => statusEl.textContent = '', 3000);
@@ -318,9 +449,7 @@
         function updateProfileCompletion() {
             let filledFields = 0;
             PROFILE_FIELDS.forEach(id => {
-                if (document.getElementById(id).value.trim() !== '') {
-                    filledFields++;
-                }
+                if (document.getElementById(id).value.trim() !== '') filledFields++;
             });
             const completion = Math.round((filledFields / PROFILE_FIELDS.length) * 100);
             document.getElementById('profile-completion-bar').style.width = `${completion}%`;
