@@ -17,65 +17,48 @@
         .view {
             width: 100%;
             height: 100vh;
-            overflow: hidden; /* Prevent body scroll when a view is active */
-        }
-        #list-view {
-             overflow-y: auto; /* Allow scrolling only on the list view */
+            overflow-y: auto;
         }
         /* Graph specific styles */
         .graph-container {
             width: 100%;
             height: 100%;
-            cursor: move; /* Indicate that the background is pannable */
             touch-action: none;
         }
         .node {
             cursor: pointer;
             transition: all 0.2s ease-in-out;
         }
-        .node circle {
-            stroke: #6366F1; /* Indigo-500 */
-            stroke-width: 1.5px;
-            fill: #1E1B4B; /* Indigo-950 */
-        }
         .node-label {
             pointer-events: none;
-            font-size: 11px;
-            font-weight: 500;
-            fill: #E0E7FF; /* Indigo-100 */
-            text-anchor: middle;
-            paint-order: stroke;
-            stroke: #1E1B4B; /* Indigo-950 */
-            stroke-width: 3px;
-            stroke-linecap: butt;
-            stroke-linejoin: miter;
+            font-size: 10px;
+            fill: #E5E7EB; /* gray-200 */
         }
         .link {
-            stroke-opacity: 0.5;
+            stroke-opacity: 0.6;
         }
         .node.highlight circle {
-            stroke: #FBBF24; /* Amber-400 */
-            stroke-width: 4px;
-            transform: scale(1.1);
-        }
-        .node.highlight .node-label {
-            font-weight: 700;
-            fill: #FBBF24;
+            stroke: #FBBF24; /* amber-400 */
+            stroke-width: 3px;
         }
         .link.highlight {
-            stroke: #FBBF24; /* Amber-400 */
+            stroke: #FBBF24; /* amber-400 */
             stroke-opacity: 1;
             stroke-width: 2.5px;
         }
-        .graph-container.selecting .node:not(.highlight):not(.highlight-neighbor) {
-            opacity: 0.15;
+        .node:not(.highlight-neighbor) circle,
+        .link:not(.highlight) {
+            transition: opacity 0.3s ease;
         }
-        .graph-container.selecting .link:not(.highlight) {
-            opacity: 0.05;
+        body.selecting .node:not(.highlight):not(.highlight-neighbor) {
+            opacity: 0.2;
+        }
+        body.selecting .link:not(.highlight) {
+            opacity: 0.1;
         }
         .node.highlight-neighbor circle {
-            stroke: #A5B4FC; /* Indigo-300 */
-            stroke-width: 2px;
+            stroke: #FBBF24; /* amber-400 */
+            stroke-width: 1.5px;
             stroke-opacity: 0.8;
         }
         /* Utility for text clamping */
@@ -136,14 +119,14 @@
             <div class="p-4 bg-gray-900/80 backdrop-blur-sm border-b border-gray-700 flex justify-between items-center">
                 <div>
                     <h1 id="theory-title" class="text-xl md:text-2xl font-bold text-white"></h1>
-                    <p class="text-sm text-gray-400">Click a node to explore. Scroll to zoom, drag background to pan.</p>
+                    <p class="text-sm text-gray-400">Click on any concept (node) to explore. Drag to rearrange.</p>
                 </div>
                 <button id="back-to-list" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg transition-colors flex-shrink-0">
                     &larr; Back to List
                 </button>
             </div>
-            <div id="graph-container" class="flex-grow bg-gray-900"></div>
-            <div class="p-4 text-xs text-gray-500 border-t border-gray-700 overflow-y-auto max-h-24 bg-gray-900">
+            <div id="graph-container" class="flex-grow bg-gray-800/20"></div>
+            <div class="p-4 text-xs text-gray-500 border-t border-gray-700 overflow-y-auto max-h-24">
                 <strong>Description:</strong> <span id="theory-description-text"></span>
             </div>
         </main>
@@ -159,9 +142,8 @@
     <script>
         // --- EMBEDDED DATA ---
         // This makes the HTML file self-contained and portable.
-        const defaultTheoryData = [
-            
-           [
+        const defaultTheoryData = [{
+            [
     {
         "id": 1,
         "name": "Action Theory Model of Consumption",
@@ -26580,9 +26562,7 @@
         ]
     }
 ]
-                                  
-                                  ];
-
+        }]
         // --- GLOBAL STATE & DOM ELEMENTS ---
         let allTheories = [];
         let currentPage = 1;
@@ -26605,8 +26585,12 @@
 
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
+            // Pre-fill the textarea with the default data
             jsonInput.value = JSON.stringify(defaultTheoryData, null, 2);
+            
+            // Initial load of data from the default variable
             loadDefaultData();
+
             loadJsonBtn.addEventListener('click', processAndRenderData);
             toggleJsonBtn.addEventListener('click', () => {
                 const isHidden = jsonInputContainer.classList.toggle('hidden');
@@ -26617,10 +26601,15 @@
 
         // --- VIEW MANAGEMENT & DATA HANDLING ---
         
+        /**
+         * Loads theories from the default embedded data variable on page load.
+         */
         function loadDefaultData() {
             try {
-                allTheories = JSON.parse(jsonInput.value); // Parse the pre-filled text area
-                if (!Array.isArray(allTheories)) throw new Error("Default data is not a valid array.");
+                allTheories = defaultTheoryData; // Use the variable directly
+                if (!Array.isArray(allTheories)) {
+                    throw new Error("Default data is not a valid array.");
+                }
                 currentPage = 1; 
                 displayPage(currentPage);
                 jsonStatus.textContent = `Successfully loaded ${allTheories.length} default theories.`;
@@ -26632,11 +26621,16 @@
             }
         }
         
+        /**
+         * Parses the JSON from the textarea and updates the UI.
+         */
         function processAndRenderData() {
             try {
                 allTheories = JSON.parse(jsonInput.value);
-                if (!Array.isArray(allTheories)) throw new Error("JSON data must be an array of theories.");
-                currentPage = 1; 
+                if (!Array.isArray(allTheories)) {
+                    throw new Error("JSON data must be an array of theories.");
+                }
+                currentPage = 1; // Reset to first page
                 displayPage(currentPage);
                 jsonStatus.textContent = `Successfully loaded ${allTheories.length} theories from textarea.`;
                 jsonStatus.className = 'ml-4 text-sm text-green-400';
@@ -26644,22 +26638,31 @@
                 console.error("Error parsing JSON:", error);
                 jsonStatus.textContent = `Error: Invalid JSON format. ${error.message}`;
                 jsonStatus.className = 'ml-4 text-sm text-red-400';
-                theoryListContainer.innerHTML = ''; 
-                paginationContainer.innerHTML = '';
+                theoryListContainer.innerHTML = ''; // Clear list on error
+                paginationContainer.innerHTML = ''; // Clear pagination on error
             }
         }
 
+        /**
+         * Displays a specific page of theories and updates pagination controls.
+         * @param {number} page - The page number to display.
+         */
         function displayPage(page) {
             currentPage = page;
             const startIndex = (page - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
             const paginatedTheories = allTheories.slice(startIndex, endIndex);
+
             populateTheoryList(paginatedTheories);
             setupPaginationControls(allTheories.length, page);
         }
 
+        /**
+         * Populates the main list view with cards for a given page of theories.
+         * @param {Array<object>} theories - The array of theory objects for the current page.
+         */
         function populateTheoryList(theories) {
-            theoryListContainer.innerHTML = ''; 
+            theoryListContainer.innerHTML = ''; // Clear previous page
             if (theories.length === 0) {
                  theoryListContainer.innerHTML = '<p class="text-gray-400 col-span-full">No theories to display.</p>';
                  return;
@@ -26678,11 +26681,17 @@
             });
         }
         
+        /**
+         * Creates and manages the pagination buttons.
+         * @param {number} totalItems - Total number of theories.
+         * @param {number} currentPage - The currently active page.
+         */
         function setupPaginationControls(totalItems, page) {
             paginationContainer.innerHTML = '';
             const totalPages = Math.ceil(totalItems / itemsPerPage);
             if (totalPages <= 1) return;
 
+            // Previous Button
             const prevButton = document.createElement('button');
             prevButton.innerHTML = '&larr; Previous';
             prevButton.className = 'pagination-btn';
@@ -26690,11 +26699,13 @@
             prevButton.addEventListener('click', () => displayPage(page - 1));
             paginationContainer.appendChild(prevButton);
 
+            // Page Info
             const pageInfo = document.createElement('span');
             pageInfo.className = 'text-sm text-gray-400';
             pageInfo.textContent = `Page ${page} of ${totalPages}`;
             paginationContainer.appendChild(pageInfo);
 
+            // Next Button
             const nextButton = document.createElement('button');
             nextButton.innerHTML = 'Next &rarr;';
             nextButton.className = 'pagination-btn';
@@ -26741,17 +26752,23 @@
                 let modifier = null;
                 
                 const modifiedMatch = object.match(/the '(.*?)' to '(.*?)'/i);
-                if (modifiedMatch) return { source: modifiedMatch[1].trim(), target: modifiedMatch[2].trim(), type: predicate, modifier: source };
+                if (modifiedMatch) {
+                    return { source: modifiedMatch[1].trim(), target: modifiedMatch[2].trim(), type: predicate, modifier: source };
+                }
                 
                 const predicateMatch = predicate.match(/(.*?)\s*\(\*\)/);
-                if (predicateMatch) object = object.replace(/\(\*\)/g, '').trim();
+                if(predicateMatch){
+                    object = object.replace(/\(\*\)/g, '').trim();
+                }
 
                 return { source, target: object.replace('(*)', '').trim(), type: predicateMatch ? predicateMatch[1].trim() : predicate, modifier };
             }).map(link => {
                 const sourceNode = nodeMap.get(link.source);
                 const targetNode = nodeMap.get(link.target);
-                if (sourceNode && targetNode) return { ...link, source: sourceNode, target: targetNode };
-                console.warn(`Invalid link: '${link.source}' -> '${link.target}' in theory '${theory.name}'`);
+                if (sourceNode && targetNode) {
+                    return { ...link, source: sourceNode, target: targetNode };
+                }
+                console.warn(`Invalid link due to missing node, ignoring: '${link.source}' -> '${link.target}' in theory '${theory.name}'`);
                 return null;
             }).filter(Boolean);
 
@@ -26765,16 +26782,15 @@
             resetInfoPanel();
 
             const svg = d3.select(graphContainer).append("svg")
-                .attr("viewBox", [-width / 2, -height / 2, width, height]);
-
-            const containerG = svg.append("g");
+                .attr("viewBox", [-width / 2, -height / 2, width, height])
+                .style("font", "12px sans-serif");
             
             svg.append("defs").selectAll("marker")
                 .data(["influences", "positively influences", "negatively influences", "transitions to", "part of", "type of", "correlates with", "may influence"])
                 .join("marker")
                     .attr("id", d => `arrow-${d.replace(/[\s/]+/g, '-')}`)
                     .attr("viewBox", "0 -5 10 10")
-                    .attr("refX", 22) // Increased distance from node
+                    .attr("refX", 19)
                     .attr("refY", 0)
                     .attr("markerWidth", 6)
                     .attr("markerHeight", 6)
@@ -26784,12 +26800,12 @@
                     .attr("fill", d => linkColor(d));
 
             const simulation = d3.forceSimulation(nodes)
-                .force("link", d3.forceLink(links).distance(150).strength(0.5))
-                .force("charge", d3.forceManyBody().strength(-400))
-                .force("collide", d3.forceCollide().radius(30))
-                .force("center", d3.forceCenter(0, 0));
+                .force("link", d3.forceLink(links).distance(120))
+                .force("charge", d3.forceManyBody().strength(-250))
+                .force("x", d3.forceX())
+                .force("y", d3.forceY());
 
-            const linkElements = containerG.append("g")
+            const linkElements = svg.append("g")
                 .selectAll("line")
                 .data(links)
                 .join("line")
@@ -26799,19 +26815,24 @@
                 .attr("stroke-dasharray", d => d.modifier ? "5,5" : "none")
                 .attr("marker-end", d => `url(#arrow-${d.type.replace(/[\s/]+/g, '-')})`);
 
-            const nodeElements = containerG.append("g")
+            const nodeElements = svg.append("g")
                 .selectAll("g")
                 .data(nodes)
                 .join("g")
                 .attr("class", "node")
-                .call(drag(simulation));
+                .call(drag(simulation))
+                .on("click", nodeClicked);
             
             nodeElements.append("circle")
-                .attr("r", 12);
+                .attr("r", 8)
+                .attr("fill", "#1F2937")
+                .attr("stroke", "#4B5563")
+                .attr("stroke-width", 1.5);
             
             nodeElements.append("text")
                 .text(d => d.id)
-                .attr("y", 24)
+                .attr("x", 12)
+                .attr("y", 4)
                 .attr("class", "node-label");
             
             simulation.on("tick", () => {
@@ -26823,19 +26844,11 @@
                 nodeElements.attr("transform", d => `translate(${d.x},${d.y})`);
             });
             
-            // Pan and Zoom
-            const zoom = d3.zoom().on("zoom", (event) => {
-                containerG.attr("transform", event.transform);
-            });
-            svg.call(zoom);
-
             function drag(simulation) {
                 function dragstarted(event, d) {
                     if (!event.active) simulation.alphaTarget(0.3).restart();
                     d.fx = d.x;
                     d.fy = d.y;
-                    // Stop zoom propagation when dragging a node
-                    event.sourceEvent.stopPropagation();
                 }
                 function dragged(event, d) {
                     d.fx = event.x;
@@ -26855,15 +26868,15 @@
                 event.stopPropagation();
                 if (selectedNode && selectedNode.id === d.id) {
                     selectedNode = null;
-                    graphContainer.classList.remove('selecting');
-                    nodeElements.classed('highlight', false).classed('highlight-neighbor', false);
-                    linkElements.classed('highlight', false);
+                    d3.selectAll('.node').classed('highlight', false).classed('highlight-neighbor', false);
+                    d3.selectAll('.link').classed('highlight', false);
+                    document.body.classList.remove('selecting');
                     resetInfoPanel();
                     return;
                 }
                 
                 selectedNode = d;
-                graphContainer.classList.add('selecting');
+                document.body.classList.add('selecting');
                 updateInfoPanel(d, links);
 
                 const connectedLinks = links.filter(l => l.source.id === d.id || l.target.id === d.id);
@@ -26877,9 +26890,9 @@
             svg.on("click", () => {
                  if (selectedNode) {
                     selectedNode = null;
-                    graphContainer.classList.remove('selecting');
-                    nodeElements.classed('highlight', false).classed('highlight-neighbor', false);
-                    linkElements.classed('highlight', false);
+                    d3.selectAll('.node').classed('highlight', false).classed('highlight-neighbor', false);
+                    d3.selectAll('.link').classed('highlight', false);
+                    document.body.classList.remove('selecting');
                     resetInfoPanel();
                  }
             });
