@@ -1,0 +1,494 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, serverTimestamp, setDoc, increment } from 'firebase/firestore';
+import { ChevronRight, Trash2, Zap, BrainCircuit, Apple, Utensils, HeartPulse, Building, Users, BookOpen, UserCheck, MessageSquare, Send, X, User, Award, BookCopy } from 'lucide-react';
+
+// --- Firebase Configuration ---
+// These variables are expected to be injected by the environment.
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-persistent-memory-app';
+
+// --- Graph Structure with Guided Questions (Expanded) ---
+// This object defines the structure of the data, including categories, icons, and guided questions for entries.
+const graphStructure = {
+  "Biology": {
+    icon: HeartPulse,
+    color: "text-blue-400",
+    bgColor: "bg-blue-900/20",
+    factors: {
+      "Genetics": { questions: ["Have you had any genetic testing? If so, what were the key findings?", "Are there significant hereditary conditions in your immediate family (e.g., heart disease, diabetes)?", "Describe your general inherited physical traits (e.g., body type, metabolism)."] },
+      "Sleep": { questions: ["How many hours of sleep did you get last night?", "How would you rate the quality of your sleep (e.g., restful, interrupted, poor)?", "What time did you go to bed and what time did you wake up?", "Did you have any memorable dreams or nightmares?"] },
+      "Gut Health": { questions: ["Describe your digestion today.", "Have you eaten any fermented foods?"] },
+      "Physical Illness": { questions: ["Are you experiencing any symptoms of illness?", "Have you taken any medication today?"] },
+      "Hormones": { questions: ["How are your energy levels today?", "Have you noticed any mood fluctuations?"] }
+    }
+  },
+  "Individual Psychology": {
+    icon: BrainCircuit,
+    color: "text-yellow-400",
+    bgColor: "bg-yellow-900/20",
+    factors: {
+      "Mental Health": { questions: ["What is your overall mood today?", "Describe any feelings of stress or anxiety.", "What brought you joy today?"] },
+      "Cognition": { questions: ["How would you rate your focus and concentration?", "Did you learn anything new today?"] },
+      "Beliefs & Attitudes": { questions: ["Did any of your core beliefs get challenged today?", "What was your attitude towards today's challenges?"] },
+      "Self-Efficacy": { questions: ["Describe a moment you felt capable and confident.", "Did you overcome any obstacles today?"] },
+      "Body Image": { questions: ["How do you feel about your body today?", "Did you engage in any positive self-talk?"] }
+    }
+  },
+  "Food Consumption": {
+    icon: Utensils,
+    color: "text-gray-400",
+    bgColor: "bg-gray-900/20",
+    factors: {
+        "Breakfast": { questions: ["What did you eat for breakfast?", "How did you feel after?"]},
+        "Lunch": { questions: ["What did you eat for lunch?", "How did you feel after?"]},
+        "Dinner": { questions: ["What did you eat for dinner?", "How did you feel after?"]},
+        "Snacks": { questions: ["Did you have any snacks today? If so, what?"]},
+    }
+  },
+  "Individual Activity": {
+    icon: Zap,
+    color: "text-green-400",
+    bgColor: "bg-green-900/20",
+    factors: {
+      "Physical Activity": { questions: ["What physical activities did you do today?", "For how long did you do them?", "How did you feel afterwards?"] },
+      "Leisure Time": { questions: ["How did you spend your leisure time?", "Did you find it relaxing?"] },
+      "Occupational Activity": { questions: ["What were your main tasks at work?", "How demanding was your work today?"] },
+      "Sedentary Behavior": { questions: ["How much time did you spend sitting today?", "Did you take breaks to move around?"] }
+    }
+  },
+  "Food Production": {
+    icon: Apple,
+    color: "text-purple-400",
+    bgColor: "bg-purple-900/20",
+    factors: {
+      "Farming Practices": { questions: ["Did you consume any locally sourced food today?", "Do you know how your food was produced?"] },
+      "Food Processing": { questions: ["Did you eat any processed foods today?", "What were the ingredients?"] },
+      "Food Distribution": { questions: ["Where did you get your food from today (e.g., grocery store, farm)?"] },
+      "Food Quality": { questions: ["How would you rate the quality and freshness of your food today?"] }
+    }
+  },
+  "Activity Environment": {
+    icon: Building,
+    color: "text-indigo-400",
+    bgColor: "bg-indigo-900/20",
+    factors: {
+      "Recreation Facilities": { questions: ["Did you use any recreational facilities today (e.g., park, gym)?", "Were they accessible and well-maintained?"] },
+      "Transportation": { questions: ["What modes of transport did you use?", "Did your commute involve any physical activity?"] },
+      "Urban Design": { questions: ["Did your environment encourage walking or cycling?", "How would you describe the walkability of your area?"] },
+      "Natural Environment": { questions: ["Did you spend any time in nature today?", "How did it make you feel?"] }
+    }
+  },
+  "Societal Influences": {
+    icon: Users,
+    color: "text-orange-400",
+    bgColor: "bg-orange-900/20",
+    factors: {
+      "Education": { questions: ["Did you learn something that influenced your health choices today?"] },
+      "Socioeconomic Status": { questions: ["Did financial factors influence your food or activity choices today?"] },
+      "Social Support": { questions: ["Describe a positive social interaction you had today.", "Did you feel supported by friends or family?"] },
+      "Media": { questions: ["Did you see any media (social, news, etc.) that impacted your thoughts on health?"] },
+      "Culture": { questions: ["Did cultural norms or traditions play a role in your meals or activities today?"] }
+    }
+  },
+};
+const mainCategories = Object.keys(graphStructure);
+
+
+// --- React Components ---
+
+/**
+ * A modal component to confirm user actions, like deletion.
+ */
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
+      <div className="bg-gray-800 rounded-lg p-6 shadow-xl w-full max-w-sm border border-gray-700">
+        <h3 className="text-xl font-bold text-white mb-4">{title}</h3>
+        <p className="text-gray-300 mb-6">{message}</p>
+        <div className="flex justify-end space-x-4">
+          <button onClick={onClose} className="px-4 py-2 rounded-md bg-gray-600 text-white hover:bg-gray-500 transition-colors">Cancel</button>
+          <button onClick={onConfirm} className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-500 transition-colors">Confirm</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * A chat-like modal for guided data entry.
+ * It walks the user through a series of questions.
+ */
+const ChatModal = ({ isOpen, onClose, factor, category, questions, onComplete }) => {
+    const [conversation, setConversation] = useState([]);
+    const [currentAnswer, setCurrentAnswer] = useState('');
+    const [questionIndex, setQuestionIndex] = useState(0);
+
+    useEffect(() => {
+        if (isOpen) {
+            setConversation([{ type: 'question', text: questions[0] }]);
+            setQuestionIndex(1);
+            setCurrentAnswer('');
+        }
+    }, [isOpen, questions]);
+
+    const handleAnswerSubmit = (e) => {
+        e.preventDefault();
+        if (!currentAnswer.trim()) return;
+        const newConversation = [...conversation, { type: 'answer', text: currentAnswer }];
+        if (questionIndex < questions.length) {
+            setConversation([...newConversation, { type: 'question', text: questions[questionIndex] }]);
+            setQuestionIndex(q => q + 1);
+        } else {
+            const answers = newConversation.filter(m => m.type === 'answer').map(m => m.text);
+            onComplete(answers);
+            onClose();
+        }
+        setCurrentAnswer('');
+    };
+    
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
+            <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-lg border border-gray-700 flex flex-col" style={{height: '80vh'}}>
+                <header className="p-4 border-b border-gray-700 flex justify-between items-center">
+                    <div>
+                        <h3 className="text-xl font-bold text-white">Guided Entry: {factor}</h3>
+                        <p className="text-sm text-gray-400">Answering {questions.length} questions for {category}.</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={24} /></button>
+                </header>
+                <div className="flex-grow p-4 overflow-y-auto space-y-4">
+                    {conversation.map((msg, index) => (
+                        <div key={index} className={`flex items-end gap-2 ${msg.type === 'question' ? 'justify-start' : 'justify-end'}`}>
+                            {msg.type === 'question' && <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0"><BrainCircuit size={18} /></div>}
+                            <div className={`rounded-lg p-3 max-w-xs md:max-w-md ${msg.type === 'question' ? 'bg-gray-700 text-white' : 'bg-blue-600 text-white'}`}>{msg.text}</div>
+                        </div>
+                    ))}
+                </div>
+                <footer className="p-4 border-t border-gray-700">
+                    <form onSubmit={handleAnswerSubmit} className="flex items-center space-x-2">
+                        <input type="text" value={currentAnswer} onChange={(e) => setCurrentAnswer(e.target.value)} placeholder="Type your answer..." className="flex-grow bg-gray-900 border border-gray-600 rounded-md p-2 text-white focus:ring-2 focus:ring-blue-500" autoFocus />
+                        <button type="submit" className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-500 transition-colors flex items-center justify-center"><Send size={20} /></button>
+                    </form>
+                </footer>
+            </div>
+        </div>
+    );
+};
+
+
+/**
+ * Displays a single memory entry with a delete button.
+ */
+const EntryItem = ({ entry, onDelete }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const handleDeleteClick = () => setIsModalOpen(true);
+  const confirmDelete = () => { onDelete(entry.id); setIsModalOpen(false); };
+  const categoryInfo = graphStructure[entry.category] || { color: 'text-gray-400' };
+
+  return (
+    <>
+      <li className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between items-start group">
+        <div>
+          <span className={`font-bold text-sm ${categoryInfo.color}`}>{entry.factor}</span>
+          <p className="text-white mt-1 whitespace-pre-wrap">{entry.content}</p>
+          <span className="text-xs text-gray-500 mt-2 block">{entry.timestamp ? new Date(entry.timestamp.toDate()).toLocaleString() : 'Just now'}</span>
+        </div>
+        <button onClick={handleDeleteClick} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all" aria-label="Delete entry"><Trash2 size={18} /></button>
+      </li>
+      <ConfirmationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onConfirm={confirmDelete} title="Delete Entry" message="Are you sure you want to permanently delete this memory?" />
+    </>
+  );
+};
+
+/**
+ * The main view for a selected category, showing entry options and existing entries.
+ */
+const MainContentView = ({ category, entries, onAddEntry, onDeleteEntry }) => {
+  const [chatState, setChatState] = useState({ isOpen: false, factor: null, questions: [] });
+  const categoryInfo = graphStructure[category];
+  if (!categoryInfo) return null;
+
+  const categoryEntries = useMemo(() => entries.filter(entry => entry.category === category), [entries, category]);
+  
+  const handleBeginEntry = (factor, questions) => setChatState({ isOpen: true, factor, questions });
+  const handleChatClose = () => setChatState({ isOpen: false, factor: null, questions: [] });
+  const handleChatComplete = (answers) => {
+      const { factor } = chatState;
+      const questions = categoryInfo.factors[factor].questions;
+      const content = questions.map((q, i) => `Q: ${q}\nA: ${answers[i] || 'No answer'}`).join('\n\n');
+      onAddEntry({ category, factor, content });
+  };
+
+  return (
+    <div className="p-4 md:p-6">
+      <ChatModal isOpen={chatState.isOpen} onClose={handleChatClose} factor={chatState.factor} category={category} questions={chatState.questions} onComplete={handleChatComplete} />
+      <div className={`flex items-center space-x-4 p-4 rounded-lg ${categoryInfo.bgColor} border border-white/10`}>
+        <categoryInfo.icon className={`${categoryInfo.color} h-10 w-10`} strokeWidth={1.5} />
+        <div>
+          <h2 className="text-3xl font-bold text-white">{category}</h2>
+          <p className="text-gray-400">Log and review memories related to your {category.toLowerCase()}.</p>
+        </div>
+      </div>
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {Object.entries(categoryInfo.factors).map(([factor, { questions }]) => (
+          <div key={factor} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex flex-col justify-between">
+            <h3 className="text-lg font-semibold text-white">{factor}</h3>
+            <p className="text-sm text-gray-400 mt-1 mb-4">A set of {questions.length} guided questions.</p>
+            <button onClick={() => handleBeginEntry(factor, questions)} className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-500 transition-colors flex items-center justify-center gap-2">
+              <MessageSquare size={16}/> Begin Guided Entry
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="mt-8">
+        <h3 className="text-2xl font-bold text-white mb-4">Your Memories for {category}</h3>
+        {categoryEntries.length > 0 ? (
+          <ul className="space-y-4">{categoryEntries.map(entry => <EntryItem key={entry.id} entry={entry} onDelete={onDeleteEntry} />)}</ul>
+        ) : (
+          <div className="text-center py-10 px-4 bg-gray-800/50 rounded-lg border border-dashed border-gray-700">
+            <p className="text-gray-400">No memories logged for this category yet.</p>
+            <p className="text-gray-500 text-sm mt-1">Use the guided entry buttons above to add your first data point.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Displays the user's profile summary, including points and entry counts.
+ */
+const ProfileView = ({ entries, points }) => {
+    const summary = useMemo(() => {
+        return mainCategories.reduce((acc, category) => {
+            acc[category] = entries.filter(e => e.category === category).length;
+            return acc;
+        }, {});
+    }, [entries]);
+
+    return (
+        <div className="p-4 md:p-6">
+            <h2 className="text-3xl font-bold text-white mb-6">Your Profile</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-800/50 p-6 rounded-lg border border-gray-700 flex items-center gap-6">
+                    <Award className="h-16 w-16 text-yellow-400" />
+                    <div>
+                        <p className="text-gray-400 text-lg">Total Points</p>
+                        <p className="text-white text-5xl font-bold">{points}</p>
+                    </div>
+                </div>
+                <div className="bg-gray-800/50 p-6 rounded-lg border border-gray-700 flex items-center gap-6">
+                    <BookCopy className="h-16 w-16 text-blue-400" />
+                    <div>
+                        <p className="text-gray-400 text-lg">Total Memories</p>
+                        <p className="text-white text-5xl font-bold">{entries.length}</p>
+                    </div>
+                </div>
+            </div>
+            <div className="mt-8 bg-gray-800/50 p-6 rounded-lg border border-gray-700">
+                <h3 className="text-xl font-bold text-white mb-4">Entries per Domain</h3>
+                <ul className="space-y-3">
+                    {mainCategories.map(cat => {
+                        const Icon = graphStructure[cat].icon;
+                        return (
+                            <li key={cat} className="flex justify-between items-center text-white">
+                                <div className="flex items-center gap-3">
+                                    <Icon className={`h-5 w-5 ${graphStructure[cat].color}`} />
+                                    <span>{cat}</span>
+                                </div>
+                                <span className="font-mono bg-gray-700 px-2 py-1 rounded text-sm">{summary[cat] || 0}</span>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </div>
+        </div>
+    );
+};
+
+
+/**
+ * The main application component.
+ * It handles Firebase initialization, authentication, data fetching, and routing between views.
+ */
+export default function App() {
+  const [db, setDb] = useState(null);
+  const [auth, setAuth] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [entries, setEntries] = useState([]);
+  const [profile, setProfile] = useState({ points: 0 });
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [selectedCategory, setSelectedCategory] = useState(mainCategories[0]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Effect for initializing Firebase and handling authentication state.
+  useEffect(() => {
+    const app = initializeApp(firebaseConfig);
+    const firestoreDb = getFirestore(app);
+    const firebaseAuth = getAuth(app);
+    setDb(firestoreDb); setAuth(firebaseAuth);
+
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
+      if (user) {
+        setUserId(user.uid);
+        setIsAuthReady(true);
+      } else {
+        try {
+          // Attempt to sign in with a custom token if provided by the environment
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(firebaseAuth, __initial_auth_token);
+          } else {
+            // Fallback to anonymous sign-in if no token is available
+            await signInAnonymously(firebaseAuth);
+          }
+        } catch (error) { 
+          // The 'auth/invalid-claims' error can occur in some environments.
+          // We handle it gracefully by falling back to anonymous sign-in.
+          // Changed to console.warn to be less alarming than console.error for a handled case.
+          console.warn("Custom token authentication failed. Falling back to anonymous sign-in.", error.code);
+          try {
+            await signInAnonymously(firebaseAuth);
+          } catch (anonError) {
+             console.error("Anonymous sign-in also failed:", anonError);
+             setIsLoading(false);
+          }
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Effect for fetching user data (entries and profile) from Firestore once authenticated.
+  useEffect(() => {
+    if (!isAuthReady || !db || !userId) return;
+    setIsLoading(true);
+
+    // Listener for memory entries
+    const entriesCollectionPath = `artifacts/${appId}/users/${userId}/entries`;
+    const q = query(collection(db, entriesCollectionPath));
+    const unsubscribeEntries = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      data.sort((a, b) => (b.timestamp?.toDate() || 0) - (a.timestamp?.toDate() || 0));
+      setEntries(data);
+      if(isLoading) setIsLoading(false);
+    }, (error) => { console.error("Error fetching entries:", error); setIsLoading(false); });
+
+    // Listener for user profile data (like points)
+    const profileDocPath = `artifacts/${appId}/users/${userId}/profile/data`;
+    const unsubscribeProfile = onSnapshot(doc(db, profileDocPath), (docSnap) => {
+        if (docSnap.exists()) {
+            setProfile(docSnap.data());
+        } else {
+            // Create a profile document if it doesn't exist
+            setDoc(doc(db, profileDocPath), { points: 0 });
+        }
+    }, (error) => { console.error("Error fetching profile:", error); });
+
+    return () => { unsubscribeEntries(); unsubscribeProfile(); };
+  }, [isAuthReady, db, userId]);
+
+  // Callback to add a new entry to Firestore and update points.
+  const addEntry = useCallback(async (entryData) => {
+    if (!db || !userId) return;
+    try {
+      const collectionPath = `artifacts/${appId}/users/${userId}/entries`;
+      await addDoc(collection(db, collectionPath), { ...entryData, timestamp: serverTimestamp() });
+      
+      // Increment user's points for adding a memory
+      const profileDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
+      await setDoc(profileDocRef, { points: increment(10) }, { merge: true });
+
+    } catch (e) { console.error("Error adding document or points: ", e); }
+  }, [db, userId]);
+
+  // Callback to delete an entry from Firestore.
+  const deleteEntry = useCallback(async (entryId) => {
+    if (!db || !userId) return;
+    try {
+      const docPath = `artifacts/${appId}/users/${userId}/entries/${entryId}`;
+      await deleteDoc(doc(db, docPath));
+    } catch (e) { console.error("Error deleting document: ", e); }
+  }, [db, userId]);
+  
+  // Handler for navigation clicks in the sidebar.
+  const handleNavClick = (view, category = null) => {
+      setCurrentView(view);
+      if (view === 'dashboard' && category) {
+          setSelectedCategory(category);
+      }
+  }
+
+  // Loading state while waiting for authentication.
+  if (!isAuthReady) {
+      return (
+          <div className="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <BookOpen className="h-12 w-12 text-blue-500 animate-pulse" />
+              <p className="mt-4 text-lg">Initializing Your Persistent Memory...</p>
+          </div>
+      );
+  }
+
+  return (
+    <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col md:flex-row">
+       <div className="w-full md:w-1/3 lg:w-1/4 xl:w-1/5 bg-gray-950/50 border-r border-gray-800 p-4 flex flex-col">
+        <div className="mb-6">
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2"><BookOpen className="text-blue-400"/> Memory Suite</h1>
+            <p className="text-sm text-gray-400 mt-1">A visual guide to your life's data.</p>
+        </div>
+        <nav className="flex-grow">
+          <p className="text-xs uppercase text-gray-500 font-bold mb-3 px-2">Menu</p>
+          <ul className="space-y-1 mb-6">
+              <li>
+                  <button onClick={() => handleNavClick('profile')} className={`w-full flex items-center justify-between text-left p-2 rounded-md transition-colors ${currentView === 'profile' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-300 hover:bg-gray-800'}`}>
+                      <div className="flex items-center space-x-3"><User className="h-5 w-5 text-yellow-400" /><span>Profile</span></div>
+                      {currentView === 'profile' && <ChevronRight size={18} />}
+                  </button>
+              </li>
+          </ul>
+
+          <p className="text-xs uppercase text-gray-500 font-bold mb-3 px-2">Knowledge Domains</p>
+          <ul className="space-y-1">
+            {mainCategories.map(cat => {
+              const Icon = graphStructure[cat].icon;
+              const isSelected = currentView === 'dashboard' && selectedCategory === cat;
+              return (
+                <li key={cat}>
+                  <button onClick={() => handleNavClick('dashboard', cat)} className={`w-full flex items-center justify-between text-left p-2 rounded-md transition-colors ${isSelected ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-300 hover:bg-gray-800'}`}>
+                    <div className="flex items-center space-x-3">
+                       <Icon className={`h-5 w-5 ${isSelected ? 'text-white' : graphStructure[cat].color}`} />
+                       <span>{cat}</span>
+                    </div>
+                    {isSelected && <ChevronRight size={18} />}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+        {userId && (
+            <div className="mt-6 p-3 bg-gray-800 rounded-lg border border-gray-700">
+                <p className="text-xs text-gray-400 flex items-center gap-2"><UserCheck size={14}/> User ID:</p>
+                <p className="text-xs text-gray-300 break-all font-mono mt-1">{userId}</p>
+            </div>
+        )}
+      </div>
+
+      <main className="w-full md:w-2/3 lg:w-3/4 xl:w-4/5 overflow-y-auto" style={{ height: '100vh' }}>
+        {isLoading ? (
+            <div className="flex items-center justify-center h-full"><p className="text-gray-400">Loading...</p></div>
+        ) : (
+            <>
+                {currentView === 'dashboard' && <MainContentView category={selectedCategory} entries={entries} onAddEntry={addEntry} onDeleteEntry={deleteEntry} />}
+                {currentView === 'profile' && <ProfileView entries={entries} points={profile.points} />}
+            </>
+        )}
+      </main>
+    </div>
+  );
+}
