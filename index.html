@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schism Labs - Standalone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan-glow: rgba(0, 255, 255, 0.5);
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #e5e7eb;
+            overflow-x: hidden;
+        }
+        #interactive-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .content-section {
+            position: relative;
+            z-index: 1;
+            padding-top: 6rem;
+            padding-bottom: 6rem;
+        }
+        .glass-effect {
+            background: rgba(17, 17, 17, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        #profile-completion-bar {
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <canvas id="interactive-bg"></canvas>
+
+    <div class="relative min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="fixed top-0 left-0 right-0 z-20 py-4 px-4 sm:px-6 lg:px-8 glass-effect">
+            <div class="container mx-auto flex justify-between items-center">
+                <a href="#hero" class="text-2xl font-bold tracking-wider text-cyan-400">SCHISM LABS</a>
+                <nav class="hidden md:flex space-x-6 lg:space-x-8">
+                    <a href="#manifesto" class="text-gray-300 hover:text-cyan-400 transition-colors">Manifesto</a>
+                    <a href="#capabilities" class="text-gray-300 hover:text-cyan-400 transition-colors">R&D Focus</a>
+                    <a href="#theses" class="text-gray-300 hover:text-cyan-400 transition-colors">Theses</a>
+                    <a href="#control-panel" class="text-gray-300 hover:text-cyan-400 transition-colors">Control Panel</a>
+                </nav>
+                <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-cyan-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="hidden md:hidden mt-4 glass-effect rounded-lg">
+                 <a href="#manifesto" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Manifesto</a>
+                 <a href="#capabilities" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">R&D Focus</a>
+                 <a href="#theses" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Theses</a>
+                 <a href="#control-panel" class="block py-2 px-4 text-gray-300 hover:bg-gray-800 rounded">Control Panel</a>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow">
+            <section id="hero" class="content-section container mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col justify-center items-center min-h-screen">
+                <h2 class="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight">Schism doesn’t fix people, it fixes the gap</h2>
+                <p class="text-lg md:text-xl text-gray-400 max-w-3xl">What TCP/IP did for data, Schism will do for human meaning. We build the missing infrastructure for human understanding in a digital world.</p>
+                <a href="#control-panel" class="mt-8 px-8 py-3 bg-cyan-500 text-black font-semibold rounded-lg hover:bg-cyan-400 transition-all transform hover:scale-105">Join the Protocol</a>
+            </section>
+
+            <!-- Control Panel Section -->
+            <section id="control-panel" class="content-section">
+                 <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
+                     <h3 class="text-3xl font-bold text-center mb-12 text-cyan-400">User Control Panel</h3>
+                     
+                     <!-- Logged Out State -->
+                     <div id="auth-container">
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <!-- Sign In Form -->
+                             <div class="glass-effect rounded-lg p-8">
+                                 <h4 class="text-2xl font-bold text-white mb-6 text-center">Sign In</h4>
+                                 <form id="login-form" class="space-y-4">
+                                     <input type="email" id="login-email" placeholder="Email" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
+                                     <input type="password" id="login-password" placeholder="Password" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
+                                     <button type="submit" class="w-full px-8 py-3 bg-cyan-500 text-black font-semibold rounded-lg hover:bg-cyan-400 transition-all">Sign In</button>
+                                     <p id="login-error" class="text-red-500 text-sm h-4 text-center"></p>
+                                 </form>
+                             </div>
+                             <!-- Register Form -->
+                              <div class="glass-effect rounded-lg p-8">
+                                 <h4 class="text-2xl font-bold text-white mb-6 text-center">Register</h4>
+                                 <form id="register-form" class="space-y-4">
+                                     <input type="email" id="register-email" placeholder="Email" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
+                                     <input type="password" id="register-password" placeholder="Password" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
+                                     <button type="submit" class="w-full px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-500 transition-all">Register</button>
+                                     <p id="register-error" class="text-red-500 text-sm h-4 text-center"></p>
+                                 </form>
+                             </div>
+                         </div>
+                     </div>
+
+                     <!-- Logged In State -->
+                     <div id="profile-container" class="hidden">
+                        <div class="glass-effect rounded-lg p-8">
+                            <div class="flex justify-between items-center mb-6">
+                                <h4 class="text-2xl font-bold text-white">Your Profile</h4>
+                                <button id="signOutBtn" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-500 transition-all text-sm">Sign Out</button>
+                            </div>
+
+                            <!-- Profile Completion Tracker -->
+                            <div class="mb-8">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm font-medium text-gray-300">Profile Completion</span>
+                                    <span id="profile-completion-text" class="text-sm font-bold text-cyan-400">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded-full h-2.5">
+                                    <div id="profile-completion-bar" class="bg-cyan-500 h-2.5 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <form id="profile-form" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                <!-- Personal Info -->
+                                <input type="text" id="profile-name" placeholder="Name" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <input type="text" id="profile-org" placeholder="Organization / University" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <input type="text" id="profile-position" placeholder="Job Position" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <input type="text" id="profile-interests" placeholder="Interests (comma-separated)" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                
+                                <!-- Social Links -->
+                                <input type="text" id="profile-github" placeholder="GitHub Handle" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <input type="text" id="profile-twitter" placeholder="Twitter (X) Handle" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <input type="text" id="profile-linkedin" placeholder="LinkedIn Handle" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <input type="text" id="profile-reddit" placeholder="Reddit Handle" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <input type="text" id="profile-other" placeholder="Other Social Link" class="w-full md:col-span-2 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+
+                                <div class="md:col-span-2 mt-4">
+                                     <button type="submit" class="w-full px-8 py-3 bg-cyan-500 text-black font-semibold rounded-lg hover:bg-cyan-400 transition-all">Save Profile</button>
+                                     <p id="profile-save-status" class="text-green-400 text-sm h-4 text-center mt-2"></p>
+                                </div>
+                            </form>
+                        </div>
+                     </div>
+                </div>
+            </section>
+
+            <section id="manifesto" class="content-section bg-black bg-opacity-30">
+                 <!-- Manifesto Content Here -->
+            </section>
+            
+            <section id="capabilities" class="content-section">
+                 <!-- R&D Focus Content Here -->
+            </section>
+
+            <section id="theses" class="content-section bg-black bg-opacity-30">
+                 <!-- Theses Content Here -->
+            </section>
+        </main>
+
+        <footer class="py-6 px-4 sm:px-6 lg:px-8 text-center text-gray-500">
+            <p>&copy; 2024 Schism Labs. All rights reserved.</p>
+        </footer>
+    </div>
+
+
+    <script type="module">
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        // IMPORTANT: Replace with your actual Firebase config object
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // --- Global State ---
+        let auth, db;
+        let unsubscribeProfile;
+        const PROFILE_FIELDS = ['profile-name', 'profile-org', 'profile-position', 'profile-interests', 'profile-github', 'profile-twitter', 'profile-linkedin', 'profile-reddit', 'profile-other'];
+
+        // --- Initialize Page ---
+        function initializePage() {
+            console.log("Initializing page...");
+            try {
+                const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+                auth = getAuth(app);
+                db = getFirestore(app);
+                setupEventListeners();
+                setupAuthObserver();
+            } catch (e) {
+                console.error("Firebase initialization failed. Make sure you have replaced the placeholder configuration.", e);
+                document.getElementById('control-panel').innerHTML = `<p class="text-red-500 text-center">Firebase configuration is invalid. Please update the script.</p>`;
+            }
+            setupUI();
+        }
+
+        // --- UI Setup ---
+        function setupUI() {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.onclick = () => mobileMenu.classList.toggle('hidden');
+        }
+
+        // --- Authentication ---
+        function setupAuthObserver() {
+            const authContainer = document.getElementById('auth-container');
+            const profileContainer = document.getElementById('profile-container');
+
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    authContainer.classList.add('hidden');
+                    profileContainer.classList.remove('hidden');
+                    loadUserProfile(user.uid);
+                } else {
+                    authContainer.classList.remove('hidden');
+                    profileContainer.classList.add('hidden');
+                    if (unsubscribeProfile) unsubscribeProfile();
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            // Forms
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            document.getElementById('profile-form').addEventListener('submit', handleProfileSave);
+            document.getElementById('signOutBtn').addEventListener('click', () => signOut(auth));
+            
+            // Profile completion tracker listener
+            PROFILE_FIELDS.forEach(id => {
+                document.getElementById(id).addEventListener('input', updateProfileCompletion);
+            });
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                errorEl.textContent = '';
+            } catch (error) {
+                errorEl.textContent = error.message;
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const errorEl = document.getElementById('register-error');
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                errorEl.textContent = '';
+            } catch (error) {
+                errorEl.textContent = error.message;
+            }
+        }
+
+        // --- Profile Management ---
+        async function loadUserProfile(uid) {
+            if (unsubscribeProfile) unsubscribeProfile();
+            const profileDocRef = doc(db, `users/${uid}/profile/data`);
+
+            const docSnap = await getDoc(profileDocRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                PROFILE_FIELDS.forEach(id => {
+                    const key = id.replace('profile-', '');
+                    document.getElementById(id).value = data[key] || '';
+                });
+            }
+            updateProfileCompletion();
+        }
+        
+        async function handleProfileSave(e) {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            const profileData = {};
+            PROFILE_FIELDS.forEach(id => {
+                const key = id.replace('profile-', '');
+                profileData[key] = document.getElementById(id).value;
+            });
+
+            const statusEl = document.getElementById('profile-save-status');
+            statusEl.textContent = 'Saving...';
+            try {
+                const profileDocRef = doc(db, `users/${user.uid}/profile/data`);
+                await setDoc(profileDocRef, profileData, { merge: true });
+                statusEl.textContent = 'Profile Saved!';
+                setTimeout(() => statusEl.textContent = '', 3000);
+            } catch (error) {
+                statusEl.textContent = 'Error saving profile.';
+                console.error("Error saving profile: ", error);
+            }
+        }
+
+        function updateProfileCompletion() {
+            let filledFields = 0;
+            PROFILE_FIELDS.forEach(id => {
+                if (document.getElementById(id).value.trim() !== '') {
+                    filledFields++;
+                }
+            });
+            const completion = Math.round((filledFields / PROFILE_FIELDS.length) * 100);
+            document.getElementById('profile-completion-bar').style.width = `${completion}%`;
+            document.getElementById('profile-completion-text').textContent = `${completion}%`;
+        }
+
+        // --- Page Load ---
+        window.addEventListener('DOMContentLoaded', initializePage);
+        
+        // --- Background Canvas Animation ---
+        const canvas = document.getElementById('interactive-bg');
+        const ctx = canvas.getContext('2d');
+        let particlesArray;
+        let mouse = { x: null, y: null, radius: 100 }
+
+        function setCanvasValues() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            mouse.radius = (canvas.width / 12) * (canvas.height / 12) / 100;
+        }
+        setCanvasValues();
+        window.addEventListener('resize', () => { setCanvasValues(); init(); });
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+        window.addEventListener('mouseout', () => { mouse.x = undefined; mouse.y = undefined; });
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.size = (Math.random() * 1.5) + 1;
+                this.baseX = this.x; this.baseY = this.y;
+                this.density = (Math.random() * 40) + 5;
+                this.color = 'rgba(0, 255, 255, 0.5)';
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < mouse.radius) {
+                    let force = (mouse.radius - distance) / mouse.radius;
+                    this.x -= (dx / distance) * force * this.density * 0.1;
+                    this.y -= (dy / distance) * force * this.density * 0.1;
+                } else {
+                    if (this.x !== this.baseX) this.x -= (this.x - this.baseX) / 10;
+                    if (this.y !== this.baseY) this.y -= (this.y - this.baseY) / 10;
+                }
+                this.draw();
+            }
+        }
+
+        function init() {
+            particlesArray = [];
+            let numberOfParticles = (canvas.height * canvas.width) / 9000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                particlesArray.push(new Particle(x, y));
+            }
+        }
+
+        function connect() {
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a; b < particlesArray.length; b++) {
+                    let distance = Math.sqrt(
+                        Math.pow(particlesArray[a].x - particlesArray[b].x, 2) +
+                        Math.pow(particlesArray[a].y - particlesArray[b].y, 2)
+                    );
+                    if (distance < (Math.min(canvas.width, canvas.height) / 8)) {
+                        let opacity = 1 - (distance / 100);
+                        ctx.strokeStyle = `rgba(0, 150, 150, ${opacity * 0.3})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+            }
+            connect();
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
