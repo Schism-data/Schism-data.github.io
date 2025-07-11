@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPU Orchestrator with Frequency Queue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0e1a;
+            color: #f3f4f6;
+        }
+        .panel {
+            border: 1px solid #4b5563;
+            background-color: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(5px);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            transition: all 0.5s ease-in-out;
+        }
+        .panel.highlight {
+            border-color: #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+        }
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(20px, 1fr));
+            gap: 5px;
+        }
+        .data-block {
+            aspect-ratio: 1 / 1;
+            border-radius: 3px;
+            transition: all 0.3s ease-in-out;
+            opacity: 0.3;
+        }
+        .data-block.unlocked {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .lock-icon {
+            transition: all 0.3s ease-in-out;
+        }
+        .packet {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 1s ease-out;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center mb-4">
+        <h1 class="text-2xl md:text-3xl font-bold">GPU Orchestrator & Frequency Queue</h1>
+        <p id="explainer-text" class="text-md text-gray-400 mt-1 h-10">Click "Start" to begin the synchronized processing.</p>
+    </div>
+
+    <div class="relative w-full max-w-5xl h-[70vh] flex items-center justify-center">
+        <!-- GPU Orchestrator -->
+        <div id="orchestrator" class="panel w-64 h-64 flex flex-col items-center justify-center">
+            <h3 class="font-bold text-lg">GPU Orchestrator</h3>
+            <i class="fas fa-microchip fa-3x text-gray-400 my-2"></i>
+            <p class="text-sm">Frequency Queue:</p>
+            <div id="freq-queue" class="mt-2 px-4 py-1 rounded-full bg-gray-700 text-white font-bold transition-colors duration-300">
+                IDLE
+            </div>
+        </div>
+
+        <!-- Edge Devices -->
+        <div id="deviceA" class="panel absolute w-52" style="top: 0; left: 0;"></div>
+        <div id="deviceB" class="panel absolute w-52" style="top: 0; right: 0;"></div>
+        <div id="deviceC" class="panel absolute w-52" style="bottom: 0; left: 50%; transform: translateX(-50%);"></div>
+    </div>
+
+    <div class="mt-4">
+        <button id="next-step-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+            Start
+        </button>
+    </div>
+
+    <script>
+        const orchestrator = document.getElementById('orchestrator');
+        const freqQueueEl = document.getElementById('freq-queue');
+        const nextBtn = document.getElementById('next-step-btn');
+        const explainerText = document.getElementById('explainer-text');
+        const devices = ['A', 'B', 'C'];
+        const semanticAreas = {
+            hot: { name: 'Hot Data', color: 'bg-red-500', text: 'text-red-300' },
+            warm: { name: 'Warm Data', color: 'bg-yellow-500', text: 'text-yellow-300' },
+            static: { name: 'Static Data', color: 'bg-blue-500', text: 'text-blue-300' }
+        };
+
+        function setupDevices() {
+            devices.forEach(id => {
+                const deviceEl = document.getElementById(`device${id}`);
+                deviceEl.innerHTML = `
+                    <h3 class="font-bold text-center">Edge Device ${id} <i id="lock${id}" class="lock-icon fas fa-lock text-red-500 ml-1"></i></h3>
+                    <div id="grid${id}" class="data-grid mt-2 p-1 bg-gray-900/50 rounded"></div>
+                `;
+                const grid = document.getElementById(`grid${id}`);
+                // Populate with a mix of data
+                for (let i = 0; i < 18; i++) {
+                    const areaKey = Object.keys(semanticAreas)[Math.floor(Math.random() * 3)];
+                    const block = document.createElement('div');
+                    block.className = `data-block ${semanticAreas[areaKey].color}`;
+                    block.dataset.semanticArea = areaKey;
+                    grid.appendChild(block);
+                }
+            });
+        }
+
+        const steps = [
+            { text: "System idle. All data streams are locked." },
+            { area: 'hot', text: "Step 1: Orchestrator broadcasts 'Hot' frequency. Devices with matching data unlock." },
+            { area: 'warm', text: "Step 2: Orchestrator switches to 'Warm' frequency. A different set of data is unlocked and processed." },
+            { area: 'static', text: "Step 3: Orchestrator processes 'Static' data, the most power-efficient state." },
+            { text: "Sync complete. All semantic areas have been processed in optimized batches." }
+        ];
+        let currentStep = -1;
+        let simulationInterval;
+
+        function runSimulation() {
+            currentStep++;
+            if (currentStep >= steps.length) {
+                resetState();
+                return;
+            }
+            if (currentStep === 0) nextBtn.textContent = 'Next';
+            if (currentStep === steps.length - 1) nextBtn.textContent = 'Reset';
+
+            const step = steps[currentStep];
+            explainerText.textContent = step.text;
+            
+            // Reset all device states
+            devices.forEach(id => {
+                document.getElementById(`lock${id}`).className = 'lock-icon fas fa-lock text-red-500 ml-1';
+                document.querySelectorAll(`#grid${id} .data-block`).forEach(b => b.classList.remove('unlocked'));
+            });
+
+            if (step.area) {
+                const area = semanticAreas[step.area];
+                // Update orchestrator
+                freqQueueEl.className = `mt-2 px-4 py-1 rounded-full font-bold transition-colors duration-300 ${area.color}`;
+                freqQueueEl.textContent = area.name.toUpperCase();
+
+                // Update devices
+                devices.forEach(id => {
+                    const deviceEl = document.getElementById(`device${id}`);
+                    const matchingBlocks = deviceEl.querySelectorAll(`[data-semantic-area="${step.area}"]`);
+                    if (matchingBlocks.length > 0) {
+                        document.getElementById(`lock${id}`).className = 'lock-icon fas fa-lock-open text-green-500 ml-1';
+                        matchingBlocks.forEach(block => {
+                            block.classList.add('unlocked');
+                            // Animate packet flow
+                            const packet = document.createElement('div');
+                            packet.className = `packet ${area.color}`;
+                            document.body.appendChild(packet);
+                            
+                            const startRect = block.getBoundingClientRect();
+                            const endRect = orchestrator.getBoundingClientRect();
+
+                            packet.style.left = `${startRect.left + startRect.width / 2}px`;
+                            packet.style.top = `${startRect.top + startRect.height / 2}px`;
+                            
+                            setTimeout(() => {
+                                packet.style.opacity = '1';
+                                packet.style.left = `${endRect.left + endRect.width / 2}px`;
+                                packet.style.top = `${endRect.top + endRect.height / 2}px`;
+                            }, 50);
+
+                            setTimeout(() => packet.remove(), 1050);
+                        });
+                    }
+                });
+            } else {
+                 freqQueueEl.className = `mt-2 px-4 py-1 rounded-full bg-gray-700 text-white font-bold transition-colors duration-300`;
+                 freqQueueEl.textContent = 'IDLE';
+            }
+        }
+
+        function resetState() {
+            currentStep = -1;
+            nextBtn.textContent = 'Start';
+            explainerText.textContent = 'Click "Start" to begin the synchronized processing.';
+            freqQueueEl.className = `mt-2 px-4 py-1 rounded-full bg-gray-700 text-white font-bold transition-colors duration-300`;
+            freqQueueEl.textContent = 'IDLE';
+            devices.forEach(id => {
+                document.getElementById(`lock${id}`).className = 'lock-icon fas fa-lock text-red-500 ml-1';
+                document.querySelectorAll(`#grid${id} .data-block`).forEach(b => b.classList.remove('unlocked'));
+            });
+        }
+
+        setupDevices();
+        nextBtn.addEventListener('click', runSimulation);
+
+    </script>
+</body>
+</html>
