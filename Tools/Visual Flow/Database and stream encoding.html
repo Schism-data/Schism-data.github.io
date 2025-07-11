@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simultaneous Database & Stream Encoding</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0c111d;
+            color: #f3f4f6;
+            overflow: hidden;
+        }
+        .panel {
+            border: 1px solid #374151;
+            background-color: rgba(30, 41, 59, 0.6);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            position: absolute;
+        }
+        .db-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+            width: 100%;
+            padding: 4px;
+        }
+        .db-cell {
+            aspect-ratio: 1/1;
+            background-color: #1e293b;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+        .db-cell.filled {
+            transform: scale(1.1);
+        }
+        .data-stream {
+            width: 80px;
+            height: 100%;
+            background: #111827;
+            border-left: 1px solid #374151;
+            border-right: 1px solid #374151;
+            padding: 0.5rem 0;
+            overflow: hidden;
+        }
+        .packet {
+            position: absolute;
+            z-index: 20;
+            transition: all 0.8s ease-in-out;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        .stream-packet {
+            position: relative;
+            margin: 0 auto 8px auto;
+            width: 80%;
+            height: 10px;
+            border-radius: 2px;
+            animation: stream-flow 2s linear;
+        }
+        @keyframes stream-flow {
+            from { transform: translateY(-20px); }
+            to { transform: translateY(400px); }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center mb-4">
+        <h1 class="text-2xl md:text-3xl font-bold">Dual-Output Encoding Pipeline</h1>
+        <p id="explainer-text" class="text-md text-gray-400 mt-1 h-5">Click "Start" to begin the process.</p>
+    </div>
+
+    <div id="simulation-area" class="relative w-full max-w-5xl h-[70vh]">
+        <!-- Sensor -->
+        <div id="sensor" class="panel" style="left: 0; top: 50%; transform: translateY(-50%);">
+            <h3 class="font-bold text-center"><i class="fas fa-broadcast-tower mr-2"></i>Sensor</h3>
+        </div>
+
+        <!-- Encoding Engine -->
+        <div id="encoder" class="panel w-48 h-48 flex flex-col items-center justify-center" style="left: 50%; top: 20%; transform: translateX(-50%);">
+            <h3 class="font-bold text-lg">Encoding Engine</h3>
+            <i class="fas fa-atom fa-3x text-blue-400 my-2 transition-transform duration-500"></i>
+        </div>
+
+        <!-- Parallel Database -->
+        <div id="database" class="panel w-96" style="left: 50%; top: 65%; transform: translateX(-50%);">
+            <h3 class="font-bold text-center text-sm mb-2">Parallel Database (Batch Processing)</h3>
+            <div id="db-grid" class="db-grid"></div>
+        </div>
+
+        <!-- Real-time Stream -->
+        <div id="stream" class="panel" style="right: 0; top: 0; bottom: 0;">
+             <h3 class="font-bold text-center text-sm mb-2">Real-time Stream</h3>
+             <div id="stream-container" class="data-stream"></div>
+        </div>
+    </div>
+
+     <div class="mt-4 z-30">
+        <button id="next-step-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+            Start
+        </button>
+    </div>
+
+    <script>
+        const simArea = document.getElementById('simulation-area');
+        const nextBtn = document.getElementById('next-step-btn');
+        const explainerText = document.getElementById('explainer-text');
+        const sensor = document.getElementById('sensor');
+        const encoder = document.getElementById('encoder');
+        const encoderIcon = encoder.querySelector('i');
+        const database = document.getElementById('database');
+        const dbGrid = document.getElementById('db-grid');
+        const streamContainer = document.getElementById('stream-container');
+        const dbCells = [];
+
+        let simulationInterval;
+        let packetCounter = 0;
+
+        function setup() {
+            dbGrid.innerHTML = '';
+            dbCells.length = 0;
+            for (let i = 0; i < 80; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'db-cell';
+                dbGrid.appendChild(cell);
+                dbCells.push(cell);
+            }
+        }
+
+        function animatePacket(startEl, endEl, color, onComplete) {
+            const packet = document.createElement('div');
+            packet.className = `packet ${color}`;
+            simArea.appendChild(packet);
+            
+            const startRect = startEl.getBoundingClientRect();
+            const endRect = endEl.getBoundingClientRect();
+            const simRect = simArea.getBoundingClientRect();
+
+            packet.style.left = `${startRect.left - simRect.left + startRect.width / 2}px`;
+            packet.style.top = `${startRect.top - simRect.top + startRect.height / 2}px`;
+            packet.style.opacity = '1';
+            
+            setTimeout(() => {
+                packet.style.left = `${endRect.left - simRect.left + endRect.width / 2}px`;
+                packet.style.top = `${endRect.top - simRect.top + endRect.height / 2}px`;
+            }, 50);
+
+            setTimeout(() => {
+                packet.remove();
+                if (onComplete) onComplete();
+            }, 850);
+        }
+
+        function processSinglePacket() {
+            if (packetCounter >= dbCells.length) {
+                if(simulationInterval) clearInterval(simulationInterval);
+                explainerText.textContent = "Database full. Pipeline is optimized and running.";
+                return;
+            }
+
+            // 1. Ingest
+            animatePacket(sensor, encoder, 'bg-gray-500');
+
+            // 2. Encode
+            setTimeout(() => {
+                encoderIcon.style.transform = 'rotate(180deg)';
+                const colors = ['bg-green-500', 'bg-blue-500', 'bg-red-500'];
+                const color = colors[Math.floor(Math.random() * 3)];
+
+                // 3. Dual Output
+                setTimeout(() => {
+                    encoderIcon.style.transform = 'rotate(360deg)';
+                    // To Database
+                    animatePacket(encoder, dbCells[packetCounter], color, () => {
+                        dbCells[packetCounter].classList.add('filled', color);
+                        packetCounter++;
+                    });
+                    // To Stream
+                    const streamPacket = document.createElement('div');
+                    streamPacket.className = `stream-packet ${color}`;
+                    streamContainer.prepend(streamPacket);
+                    setTimeout(() => streamPacket.remove(), 2000);
+
+                }, 400);
+            }, 800);
+        }
+
+        const steps = [
+            { text: "System ready. A sensor provides raw data to the encoding engine." },
+            { action: 'start_flow', text: "Step 1: The engine encodes data and simultaneously outputs packets to two destinations." },
+            { text: "One packet goes to the Parallel Database for batch analysis and historical storage." },
+            { text: "The other packet goes to the Real-time Stream for immediate monitoring." },
+            { action: 'parallel_read', text: "Step 2: The database's structure allows for massive parallel reads by GPU cores." },
+            { text: "The system continuously fuels both batch and real-time applications from a single source." }
+        ];
+        let currentStep = -1;
+
+        function runStep() {
+            currentStep++;
+            if (currentStep >= steps.length) {
+                resetState();
+                return;
+            }
+            if (currentStep === 0) nextBtn.textContent = 'Next';
+            if (currentStep === steps.length - 1) nextBtn.textContent = 'Reset';
+
+            const step = steps[currentStep];
+            explainerText.textContent = step.text;
+            
+            if (step.action) {
+                switch(step.action) {
+                    case 'start_flow':
+                        simulationInterval = setInterval(processSinglePacket, 500);
+                        break;
+                    case 'parallel_read':
+                        if(simulationInterval) clearInterval(simulationInterval);
+                        for(let i=0; i<20; i++) {
+                            const randomIndex = Math.floor(Math.random() * packetCounter);
+                            if(dbCells[randomIndex]) {
+                                dbCells[randomIndex].style.transform = 'scale(1.2)';
+                                dbCells[randomIndex].style.borderColor = '#facc15';
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        function resetState() {
+            currentStep = -1;
+            packetCounter = 0;
+            if(simulationInterval) clearInterval(simulationInterval);
+            nextBtn.textContent = 'Start';
+            explainerText.textContent = 'Click "Start" to begin the process.';
+            dbCells.forEach(cell => {
+                cell.className = 'db-cell';
+                cell.style.transform = '';
+                cell.style.borderColor = '';
+            });
+            streamContainer.innerHTML = '';
+        }
+
+        setup();
+        nextBtn.addEventListener('click', runStep);
+
+    </script>
+</body>
+</html>
