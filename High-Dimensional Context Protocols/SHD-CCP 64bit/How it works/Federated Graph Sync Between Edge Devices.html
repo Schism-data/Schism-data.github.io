@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federated Graph Sync Between Edge Devices</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0e1a;
+            color: #f3f4f6;
+        }
+        .device-container {
+            border: 1px solid #4b5563;
+            background-color: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(5px);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            transition: all 0.5s ease-in-out;
+            position: relative;
+        }
+        .device-container.highlight {
+            border-color: #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+        }
+        .graph-node {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: all 0.5s ease-in-out;
+        }
+        .graph-area {
+            position: relative;
+            background: #1e293b;
+            border-radius: 0.25rem;
+            height: 120px;
+        }
+        .key, .packet {
+            position: absolute;
+            font-size: 1.5rem;
+            opacity: 0;
+            transition: all 1.5s ease-in-out;
+            z-index: 20;
+        }
+        .secure-channel {
+            position: absolute;
+            height: 8px;
+            background: linear-gradient(90deg, #4b5563, #4b5563);
+            border-radius: 4px;
+            z-index: 10;
+            transition: all 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center mb-4">
+        <h1 class="text-2xl md:text-3xl font-bold">Federated Graph Synchronization</h1>
+        <p id="explainer-text" class="text-md text-gray-400 mt-1 h-10">Click "Start" to see how two devices securely share context.</p>
+    </div>
+
+    <div class="relative w-full max-w-6xl flex justify-between items-center h-[60vh]">
+        <!-- Device A -->
+        <div id="deviceA" class="device-container w-5/12 h-full">
+            <h3 class="font-bold text-center">Device A</h3>
+            <div class="mt-4">
+                <p class="text-sm font-semibold">Local Quaternion Graph</p>
+                <div id="graphA" class="graph-area mt-2"></div>
+            </div>
+            <div id="keyA" class="key text-yellow-400" style="bottom: 20px; right: -25px;"><i class="fas fa-key"></i></div>
+        </div>
+
+        <!-- Relay Server -->
+        <div id="relay" class="text-center">
+            <i class="fas fa-server fa-2x text-gray-500"></i>
+            <p class="text-xs text-gray-500 mt-1">Relay</p>
+        </div>
+
+        <!-- Device B -->
+        <div id="deviceB" class="device-container w-5/12 h-full">
+            <h3 class="font-bold text-center">Device B</h3>
+            <div class="mt-4">
+                <p class="text-sm font-semibold">Local Quaternion Graph</p>
+                <div id="graphB" class="graph-area mt-2"></div>
+            </div>
+            <div id="keyB" class="key text-sky-400" style="bottom: 20px; left: -25px;"><i class="fas fa-key"></i></div>
+        </div>
+        
+        <!-- Secure Channel -->
+        <div id="channel" class="secure-channel" style="left: 41.66%; right: 41.66%; bottom: 28px;"></div>
+    </div>
+
+    <div class="mt-4">
+        <button id="next-step-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+            Start
+        </button>
+    </div>
+
+    <script>
+        const deviceA = document.getElementById('deviceA');
+        const deviceB = document.getElementById('deviceB');
+        const graphA = document.getElementById('graphA');
+        const graphB = document.getElementById('graphB');
+        const keyA = document.getElementById('keyA');
+        const keyB = document.getElementById('keyB');
+        const channel = document.getElementById('channel');
+        const nextBtn = document.getElementById('next-step-btn');
+        const explainerText = document.getElementById('explainer-text');
+
+        function generateGraph(container, count, color, offsetX = 0) {
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const node = document.createElement('div');
+                node.className = `graph-node ${color}`;
+                node.style.left = `${10 + Math.random() * 60 + offsetX}%`;
+                node.style.top = `${15 + Math.random() * 70}%`;
+                container.appendChild(node);
+            }
+        }
+
+        const steps = [
+            { text: "Step 1: User A initiates a secure share with User B." },
+            { 
+                action: 'auth',
+                text: "Step 2: A cryptographic handshake occurs. Each device uses its private key to establish a secure, end-to-end encrypted channel." 
+            },
+            { 
+                el: 'deviceA',
+                action: 'export',
+                text: "Step 3: Device A's quaternion graph is serialized into a stream of encrypted SHD-CCP packets."
+            },
+            {
+                el: 'deviceB',
+                action: 'import',
+                text: "Step 4: The encrypted stream travels through the relay server, which cannot read the contents."
+            },
+            {
+                el: 'deviceB',
+                action: 'merge',
+                text: "Step 5: Device B decrypts the packets and intelligently merges the new context into its own graph, resolving any conflicts."
+            },
+            { text: "Sync Complete: Both devices now share a richer, combined contextual understanding." }
+        ];
+        let currentStep = -1;
+
+        function runStep() {
+            currentStep++;
+            if (currentStep >= steps.length) {
+                resetState();
+                return;
+            }
+
+            if (currentStep === 0) nextBtn.textContent = 'Next';
+            if (currentStep === steps.length - 1) nextBtn.textContent = 'Reset';
+
+            const step = steps[currentStep];
+            explainerText.textContent = step.text;
+
+            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+            if (step.el) document.getElementById(step.el).classList.add('highlight');
+
+            if (step.action) {
+                switch(step.action) {
+                    case 'auth':
+                        keyA.style.opacity = '1';
+                        keyB.style.opacity = '1';
+                        keyA.style.transform = 'translateX(-12vw) rotate(-360deg)';
+                        keyB.style.transform = 'translateX(12vw) rotate(360deg)';
+                        setTimeout(() => {
+                            keyA.innerHTML = '<i class="fas fa-lock text-green-400"></i>';
+                            keyB.innerHTML = '<i class="fas fa-lock text-green-400"></i>';
+                            channel.style.background = 'linear-gradient(90deg, #facc15, #38bdf8)';
+                        }, 1500);
+                        break;
+                    case 'export':
+                        for(let i=0; i<5; i++) {
+                            const packet = document.createElement('div');
+                            packet.className = 'packet';
+                            packet.innerHTML = '<i class="fas fa-file-shield text-red-500"></i>';
+                            deviceA.appendChild(packet);
+                            packet.style.left = '50%';
+                            packet.style.top = '50%';
+                            setTimeout(() => {
+                                packet.style.opacity = '1';
+                                packet.style.transform = `translateX(${20 + i*15}vw) translateY(${Math.random()*20-10}px)`;
+                                setTimeout(() => packet.remove(), 1500);
+                            }, i * 100);
+                        }
+                        break;
+                    case 'merge':
+                         generateGraph(graphB, 8, 'bg-yellow-500', 20);
+                         break;
+                }
+            }
+        }
+
+        function resetState() {
+            currentStep = -1;
+            nextBtn.textContent = 'Start';
+            explainerText.textContent = 'Click "Start" to begin the data flow simulation.';
+            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+            
+            keyA.style.transform = 'translateX(0) rotate(0)';
+            keyB.style.transform = 'translateX(0) rotate(0)';
+            keyA.style.opacity = '0';
+            keyB.style.opacity = '0';
+            keyA.innerHTML = '<i class="fas fa-key"></i>';
+            keyB.innerHTML = '<i class="fas fa-key"></i>';
+            channel.style.background = 'linear-gradient(90deg, #4b5563, #4b5563)';
+
+            generateGraph(graphA, 8, 'bg-yellow-500');
+            generateGraph(graphB, 6, 'bg-sky-500');
+        }
+
+        resetState();
+        nextBtn.addEventListener('click', runStep);
+
+    </script>
+</body>
+</html>
