@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Token Vector Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Using Inter as the primary font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for the new theme */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1a202c; /* dark gray */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #2d3748; /* slightly lighter gray */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #4a5568; /* even lighter gray */
+        }
+        .bar-container {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-black text-green-500 p-4 sm:p-6 md:p-8" style="font-family: 'Inter', sans-serif;">
+
+    <div class="container mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-green-200">Text to Token Vector Visualizer</h1>
+            <p class="text-md sm:text-lg text-green-400 mt-2">Input text to generate frequency graphs and simulated token vectors.</p>
+        </header>
+
+        <main class="bg-gray-900/50 p-6 rounded-2xl shadow-lg border border-green-800">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Input Section -->
+                <div>
+                    <h2 class="text-2xl font-semibold text-green-300 mb-4 border-b border-green-800 pb-2">Input Data</h2>
+                    <textarea id="textInput" class="w-full h-96 p-4 border border-green-700 bg-gray-900 rounded-lg text-green-400 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-150 ease-in-out custom-scrollbar" placeholder="Paste a large amount of text here..."></textarea>
+                    <button id="processBtn" class="mt-4 w-full bg-green-600 text-black font-bold py-3 px-4 rounded-lg hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-green-500 transition-all transform hover:scale-105">
+                        Generate Visualization
+                    </button>
+                </div>
+
+                <!-- Output Section -->
+                <div>
+                    <h2 class="text-2xl font-semibold text-green-300 mb-4 border-b border-green-800 pb-2">Frequency Visualization</h2>
+                    <div id="visualization" class="w-full h-96 p-4 border border-green-800 bg-gray-900 rounded-lg overflow-y-auto custom-scrollbar">
+                         <p class="text-green-600 text-center mt-32">Frequency analysis will appear here.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Token List Section -->
+            <div class="mt-8">
+                 <h2 class="text-2xl font-semibold text-green-300 mb-4 border-b border-green-800 pb-2">Token Vector List</h2>
+                 <div class="w-full h-64 bg-gray-900 text-gray-200 p-4 rounded-lg overflow-y-auto custom-scrollbar border border-green-800">
+                    <pre id="tokenList"><code class="text-green-400">A list of tokens and their simulated vectors will be shown here.</code></pre>
+                 </div>
+            </div>
+        </main>
+
+        <footer class="text-center mt-8 text-green-700 text-sm">
+            <p>Styled with <a href="https://tailwindcss.com/" target="_blank" class="text-green-400 hover:text-green-300 underline">Tailwind CSS</a> and Vanilla JavaScript.</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- DOM Element References ---
+        const textInput = document.getElementById('textInput');
+        const processBtn = document.getElementById('processBtn');
+        const visualizationContainer = document.getElementById('visualization');
+        const tokenListPre = document.getElementById('tokenList');
+
+        // --- Event Listener ---
+        processBtn.addEventListener('click', handleProcessRequest);
+
+        /**
+         * Main handler function triggered on button click.
+         */
+        function handleProcessRequest() {
+            const text = textInput.value;
+            if (!text.trim()) {
+                visualizationContainer.innerHTML = '<p class="text-red-500 text-center mt-4">Please enter some text to analyze.</p>';
+                tokenListPre.innerHTML = '<code class="text-red-500">No text provided.</code>';
+                return;
+            }
+
+            const stopWords = new Set(['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 'her', 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now']);
+
+            // 1. Tokenize the text
+            const tokens = tokenize(text, stopWords);
+
+            // 2. Create a frequency map (vector)
+            const tokenVector = createTokenVector(tokens);
+
+            // 3. Sort the vector by frequency for better visualization
+            const sortedVector = Object.entries(tokenVector).sort(([, a], [, b]) => b - a);
+
+            // 4. Render the visualization and the list
+            renderVisualization(sortedVector);
+            renderTokenList(sortedVector);
+        }
+
+        /**
+         * Converts raw text into an array of cleaned tokens.
+         * @param {string} text - The input text from the user.
+         * @param {Set<string>} stopWords - A set of words to exclude.
+         * @returns {string[]} An array of processed tokens.
+         */
+        function tokenize(text, stopWords) {
+            return text
+                .toLowerCase()
+                .replace(/[^\w\s]/g, '')
+                .split(/\s+/)
+                .filter(word => word && !stopWords.has(word));
+        }
+
+        /**
+         * Creates a frequency map from an array of tokens.
+         * @param {string[]} tokens - An array of words.
+         * @returns {Object<string, number>} An object where keys are tokens and values are their frequencies.
+         */
+        function createTokenVector(tokens) {
+            const vector = {};
+            for (const token of tokens) {
+                vector[token] = (vector[token] || 0) + 1;
+            }
+            return vector;
+        }
+        
+        /**
+         * Generates a random vector of a given size.
+         * @param {number} size - The desired length of the vector array.
+         * @returns {number[]} An array of random floating-point numbers.
+         */
+        function generateRandomVector(size = 8) {
+            return Array.from({ length: size }, () => Math.random().toFixed(2));
+        }
+
+        /**
+         * Renders the bar chart visualization in the DOM.
+         * @param {Array<[string, number]>} sortedVector - A sorted array of [token, count] pairs.
+         */
+        function renderVisualization(sortedVector) {
+            visualizationContainer.innerHTML = '';
+            if(sortedVector.length === 0) {
+                visualizationContainer.innerHTML = '<p class="text-green-600 text-center mt-4">No significant tokens found after filtering.</p>';
+                return;
+            }
+
+            const maxCount = sortedVector[0][1];
+
+            sortedVector.slice(0, 50).forEach(([token, count]) => {
+                const barWidth = (count / maxCount) * 100;
+                const bar = document.createElement('div');
+                bar.className = 'bar-container mb-2 flex items-center group';
+                bar.innerHTML = `
+                    <div class="w-28 text-right pr-4 text-sm font-medium text-green-300 truncate group-hover:font-bold">${token}</div>
+                    <div class="flex-1">
+                        <div class="bg-green-500 h-6 rounded-r-md" style="width: ${barWidth}%; min-width: 2px;"></div>
+                    </div>
+                    <div class="w-12 text-left pl-2 text-sm font-semibold text-green-200">${count}</div>
+                `;
+                visualizationContainer.appendChild(bar);
+            });
+        }
+
+        /**
+         * Renders the full token list with simulated vectors in the DOM.
+         * @param {Array<[string, number]>} sortedVector - A sorted array of [token, count] pairs.
+         */
+        function renderTokenList(sortedVector) {
+            if(sortedVector.length === 0) {
+                tokenListPre.innerHTML = '<code class="text-green-600">No tokens to display.</code>';
+                return;
+            }
+            
+            let output = '';
+            sortedVector.forEach(([token]) => {
+                const randomVector = generateRandomVector(8);
+                const tokenPadded = token.padEnd(12, ' '); // Pad token for alignment
+                output += `${tokenPadded}: [${randomVector.join(', ')}]\n`;
+            });
+            
+            tokenListPre.innerHTML = `<code class="text-green-400">${output}</code>`;
+        }
+
+    </script>
+</body>
+</html>
