@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Aggregation & Stream Generation Pipeline</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0c111d;
+            color: #f3f4f6;
+            overflow: hidden;
+        }
+        .flow-container {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            gap: 1rem;
+            align-items: center;
+            width: 100%;
+            height: 80vh;
+        }
+        .flow-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            height: 100%;
+        }
+        .data-source, .gpu-agent, .edge-device {
+            border: 1px solid #374151;
+            background-color: rgba(30, 41, 59, 0.6);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            text-align: center;
+            width: 80%;
+            transition: all 0.3s ease-in-out;
+        }
+        .gpu-agent-swarm {
+            border: 2px dashed #4b5563;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            width: 100%;
+            height: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .gpu-agent-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .gpu-agent.processing {
+            background-color: #1d4ed8;
+            border-color: #60a5fa;
+        }
+        .data-stream {
+            position: absolute;
+            left: 66.66%;
+            top: 10%;
+            bottom: 10%;
+            width: 4px;
+            background: linear-gradient(to bottom, #1e3a8a, #3b82f6, #1e3a8a);
+            border-radius: 2px;
+        }
+        .packet {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 1s linear;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center mb-4 z-30">
+        <h1 class="text-2xl md:text-3xl font-bold">SHD-CCP Data Pipeline</h1>
+        <p id="explainer-text" class="text-md text-gray-400 mt-1 h-5">Click "Start" to begin the data flow.</p>
+    </div>
+
+    <div id="simulation-area" class="relative w-full max-w-7xl h-[80vh]">
+        <div class="flow-container absolute inset-0">
+            <!-- Column 1: Data Sources -->
+            <div class="flow-column">
+                <h2 class="text-lg font-bold">Mass Data Sources</h2>
+                <div class="data-source" id="source1"><i class="fas fa-database mr-2"></i>Databases</div>
+                <div class="data-source" id="source2"><i class="fas fa-cogs mr-2"></i>APIs</div>
+                <div class="data-source" id="source3"><i class="fas fa-stream mr-2"></i>Real-time Feeds</div>
+            </div>
+
+            <!-- Column 2: GPU Agent Swarm -->
+            <div class="flow-column">
+                <div class="gpu-agent-swarm">
+                    <h2 class="text-lg font-bold">GPU Agent Swarm</h2>
+                    <div class="gpu-agent-grid">
+                        <div class="gpu-agent" id="agent1"><i class="fas fa-microchip"></i></div>
+                        <div class="gpu-agent" id="agent2"><i class="fas fa-microchip"></i></div>
+                        <div class="gpu-agent" id="agent3"><i class="fas fa-microchip"></i></div>
+                        <div class="gpu-agent" id="agent4"><i class="fas fa-microchip"></i></div>
+                        <div class="gpu-agent" id="agent5"><i class="fas fa-microchip"></i></div>
+                        <div class="gpu-agent" id="agent6"><i class="fas fa-microchip"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Edge AI Devices -->
+            <div class="flow-column">
+                 <h2 class="text-lg font-bold">Edge AI Devices</h2>
+                <div class="edge-device" id="edge1"><i class="fas fa-mobile-alt mr-2"></i>Device A</div>
+                <div class="edge-device" id="edge2"><i class="fas fa-laptop mr-2"></i>Device B</div>
+                <div class="edge-device" id="edge3"><i class="fas fa-vr-cardboard mr-2"></i>Device C</div>
+            </div>
+        </div>
+        <!-- Data Stream -->
+        <div class="data-stream"></div>
+    </div>
+
+    <div class="mt-4 z-30">
+        <button id="next-step-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+            Start
+        </button>
+    </div>
+
+    <script>
+        const simArea = document.getElementById('simulation-area');
+        const nextBtn = document.getElementById('next-step-btn');
+        const explainerText = document.getElementById('explainer-text');
+        const sources = ['source1', 'source2', 'source3'];
+        const agents = ['agent1', 'agent2', 'agent3', 'agent4', 'agent5', 'agent6'];
+        const edges = ['edge1', 'edge2', 'edge3'];
+        const dataStreamEl = document.querySelector('.data-stream');
+
+        let simulationInterval;
+
+        function animatePacket(startEl, endEl, color, duration = 1000, content = '') {
+            const packet = document.createElement('div');
+            packet.className = `packet ${color}`;
+            packet.innerHTML = content;
+            simArea.appendChild(packet);
+            
+            const startRect = startEl.getBoundingClientRect();
+            const endRect = endEl.getBoundingClientRect();
+            const simRect = simArea.getBoundingClientRect();
+
+            packet.style.left = `${startRect.right - simRect.left}px`;
+            packet.style.top = `${startRect.top - simRect.top + startRect.height / 2}px`;
+            
+            setTimeout(() => {
+                packet.style.opacity = '1';
+                packet.style.left = `${endRect.left - simRect.left}px`;
+                packet.style.top = `${endRect.top - simRect.top + endRect.height / 2}px`;
+            }, 50);
+
+            setTimeout(() => packet.remove(), duration + 50);
+        }
+        
+        function animateStreamPacket() {
+            const packet = document.createElement('div');
+            const colors = ['bg-red-500', 'bg-yellow-500', 'bg-blue-500'];
+            packet.className = `packet ${colors[Math.floor(Math.random() * 3)]}`;
+            simArea.appendChild(packet);
+            
+            const streamRect = dataStreamEl.getBoundingClientRect();
+            const simRect = simArea.getBoundingClientRect();
+
+            const startX = streamRect.left - simRect.left + streamRect.width / 2;
+            const startY = streamRect.top - simRect.top;
+            const endY = streamRect.bottom - simRect.top;
+
+            packet.style.left = `${startX}px`;
+            packet.style.top = `${startY}px`;
+            packet.style.opacity = '1';
+            
+            setTimeout(() => {
+                 packet.style.top = `${endY}px`;
+            }, 50);
+
+            setTimeout(() => packet.remove(), 1050);
+        }
+
+        const steps = [
+            { text: "System idle. Awaiting data from multiple sources." },
+            { action: 'ingest', text: "Step 1: The GPU Agent Swarm begins ingesting raw, unstructured data from all sources in parallel." },
+            { action: 'process', text: "Step 2: Each agent processes its assigned data, encoding it into context-rich SHD-CCP packets." },
+            { action: 'generate', text: "Step 3: The swarm's output is unified into a single, coherent SHD-CCP data stream." },
+            { action: 'consume', text: "Step 4: Edge AI devices tap into the standardized stream, consuming the data needed for their local tasks." },
+            { text: "The pipeline provides a continuous, real-time flow of contextual data to the entire ecosystem." }
+        ];
+        let currentStep = -1;
+
+        function runStep() {
+            currentStep++;
+            if (currentStep >= steps.length) {
+                resetState();
+                return;
+            }
+            if (currentStep === 0) nextBtn.textContent = 'Next';
+            if (currentStep === steps.length - 1) nextBtn.textContent = 'Reset';
+
+            const step = steps[currentStep];
+            explainerText.textContent = step.text;
+            
+            if (step.action) {
+                switch(step.action) {
+                    case 'ingest':
+                        agents.forEach((agentId, i) => {
+                            const sourceEl = document.getElementById(sources[i % 3]);
+                            const agentEl = document.getElementById(agentId);
+                            animatePacket(sourceEl, agentEl, 'bg-gray-500', 1000, '<i class="fas fa-file-alt text-xs"></i>');
+                        });
+                        break;
+                    case 'process':
+                        agents.forEach(agentId => document.getElementById(agentId).classList.add('processing'));
+                        setTimeout(() => agents.forEach(agentId => document.getElementById(agentId).classList.remove('processing')), 2000);
+                        break;
+                    case 'generate':
+                        agents.forEach((agentId, i) => {
+                            const agentEl = document.getElementById(agentId);
+                            const colors = ['bg-red-500', 'bg-yellow-500', 'bg-blue-500'];
+                            animatePacket(agentEl, dataStreamEl, colors[i % 3], 1000, '<i class="fas fa-lock text-xs text-white/50"></i>');
+                        });
+                        simulationInterval = setInterval(animateStreamPacket, 200);
+                        break;
+                    case 'consume':
+                        edges.forEach((edgeId, i) => {
+                            const edgeEl = document.getElementById(edgeId);
+                            const colors = ['bg-red-500', 'bg-yellow-500', 'bg-blue-500'];
+                             setTimeout(() => {
+                                animatePacket(dataStreamEl, edgeEl, colors[i % 3], 1000, '<i class="fas fa-lightbulb text-xs text-white"></i>');
+                             }, i * 200);
+                        });
+                        break;
+                }
+            }
+        }
+
+        function resetState() {
+            currentStep = -1;
+            nextBtn.textContent = 'Start';
+            explainerText.textContent = 'Click "Start" to begin the data flow.';
+            if (simulationInterval) clearInterval(simulationInterval);
+            simulationInterval = null;
+        }
+
+        nextBtn.addEventListener('click', runStep);
+
+    </script>
+</body>
+</html>
