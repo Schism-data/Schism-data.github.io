@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated SHD-CCP System Architecture</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0e1a;
+            color: #f3f4f6;
+        }
+        .arch-container {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            height: 75vh;
+            min-height: 600px;
+        }
+        .arch-box {
+            position: absolute;
+            border: 1px solid #4b5563;
+            background-color: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(5px);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            transition: all 0.5s ease-in-out;
+            text-align: center;
+        }
+        .arch-box.highlight {
+            border-color: #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+            transform: scale(1.03);
+        }
+        .arch-box h3 {
+            font-weight: bold;
+            font-size: 0.875rem;
+        }
+        .arch-box p {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+        .data-packet {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 0.25rem;
+            opacity: 0;
+            transition: left 1s ease-in-out, top 1s ease-in-out, opacity 0.3s;
+            z-index: 10;
+        }
+        .arrow {
+            position: absolute;
+            color: #6ee7b7;
+            opacity: 0;
+            transition: opacity 0.5s ease 0.5s;
+            font-size: 1.5rem;
+            z-index: 5;
+        }
+        .arrow.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center mb-4">
+        <h1 class="text-2xl md:text-3xl font-bold">Animated System Architecture</h1>
+        <p id="explainer-text" class="text-md text-gray-400 mt-1 h-5">Click "Start" to begin the data flow simulation.</p>
+    </div>
+
+    <div id="architecture" class="arch-container">
+        <!-- Components will be placed by JS -->
+    </div>
+
+    <div class="mt-4">
+        <button id="next-step-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+            Start
+        </button>
+    </div>
+
+    <script>
+        const container = document.getElementById('architecture');
+        const nextBtn = document.getElementById('next-step-btn');
+        const explainerText = document.getElementById('explainer-text');
+
+        const layout = {
+            // User Environment
+            A1: { x: 5, y: 5, w: 25, h: 15, content: "<h3>User Environment</h3><p>Slack, Browser, etc.</p>" },
+            // Client-Side Core
+            B: { x: 35, y: 5, w: 60, h: 90, content: "<h3>Client-Side Core (On-Device)</h3>", style: "border-color: #0ea5e9;"},
+            B1: { x: 40, y: 15, w: 20, h: 12, content: "<h3>Modular SDK/API</h3>" },
+            B3: { x: 40, y: 30, w: 50, h: 35, content: "<h3>On-Device AI Engine</h3>" },
+            B3a: { x: 42, y: 38, w: 20, h: 12, content: "<h3>On-Device Transformer</h3>" },
+            B3c: { x: 42, y: 53, w: 20, h: 10, content: "<h3>SHD-CCP Encoder</h3>" },
+            B3d: { x: 68, y: 38, w: 20, h: 25, content: "<h3>Quaternion Graph DB</h3>" },
+            B2: { x: 65, y: 15, w: 25, h: 12, content: "<h3>Real-time Augmentation</h3>" },
+            B4: { x: 40, y: 68, w: 25, h: 12, content: "<h3>Encrypted Local Storage</h3>" },
+            B5: { x: 40, y: 83, w: 25, h: 10, content: "<h3>Key Management</h3>" },
+            // Network Layer
+            C1: { x: 5, y: 75, w: 25, h: 18, content: "<h3>Network Layer</h3><p>Relay Servers, E2EE</p>" },
+        };
+
+        // Render layout
+        for (const key in layout) {
+            const item = layout[key];
+            const div = document.createElement('div');
+            div.id = key;
+            div.className = 'arch-box';
+            div.style.left = `${item.x}%`;
+            div.style.top = `${item.y}%`;
+            div.style.width = `${item.w}%`;
+            div.style.height = `${item.h}%`;
+            if (item.style) div.style.cssText += item.style;
+            div.innerHTML = item.content;
+            container.appendChild(div);
+        }
+
+        const steps = [
+            { el: 'A1', text: "Step 1: Raw data (text, events) is captured from the user's applications." },
+            { el: 'B1', packet: { from: 'A1', to: 'B1', color: 'bg-gray-400' }, text: "The Modular SDK/API receives the raw data for processing." },
+            { el: 'B3a', packet: { from: 'B1', to: 'B3a', color: 'bg-gray-400' }, text: "Step 2: The On-Device Transformer analyzes the data to surface intent and impact." },
+            { el: 'B3c', packet: { from: 'B3a', to: 'B3c', color: 'bg-yellow-400' }, text: "Step 3: It outputs context vectors, which are passed to the SHD-CCP Encoder." },
+            { el: 'B3d', packet: { from: 'B3c', to: 'B3d', color: 'bg-green-400' }, text: "Step 4: The encoder creates a compact SHD-CCP packet, which is added to the Quaternion Graph." },
+            { el: 'B2', packet: { from: 'B3d', to: 'B2', color: 'bg-purple-400' }, text: "Step 5: The graph's state provides deep context to the Real-time Augmentation module." },
+            { el: 'A1', packet: { from: 'B2', to: 'A1', color: 'bg-purple-400' }, text: "Step 6: Perspective illumination is sent back to the application UI, without auto-correction." },
+            { el: 'B4', packet: { from: 'B3d', to: 'B4', color: 'bg-green-400' }, text: "Step 7: The graph state is persisted to encrypted local storage (IndexedDB)." },
+            { el: 'B5', text: "User-controlled keys manage the encryption for local storage and transport." },
+            { el: 'C1', packet: { from: 'B4', to: 'C1', color: 'bg-red-400' }, text: "Step 8: For collaboration, encrypted data can be sent via a minimal relay server." }
+        ];
+        let currentStep = -1;
+
+        function runStep() {
+            currentStep++;
+            if (currentStep >= steps.length) {
+                resetState();
+                return;
+            }
+
+            if (currentStep === 0) nextBtn.textContent = 'Next';
+            if (currentStep === steps.length - 1) nextBtn.textContent = 'Reset';
+
+            const step = steps[currentStep];
+            explainerText.textContent = step.text;
+
+            // Highlight element
+            document.querySelectorAll('.arch-box.highlight').forEach(el => el.classList.remove('highlight'));
+            document.getElementById(step.el).classList.add('highlight');
+
+            // Animate packet
+            if (step.packet) {
+                const fromEl = document.getElementById(step.packet.from);
+                const toEl = document.getElementById(step.packet.to);
+                
+                const packet = document.createElement('div');
+                packet.className = `data-packet ${step.packet.color}`;
+                container.appendChild(packet);
+
+                // Start position
+                const startRect = fromEl.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                packet.style.left = `${startRect.left - containerRect.left + startRect.width / 2}px`;
+                packet.style.top = `${startRect.top - containerRect.top + startRect.height / 2}px`;
+                packet.style.opacity = '1';
+
+                // End position
+                setTimeout(() => {
+                    const endRect = toEl.getBoundingClientRect();
+                    packet.style.left = `${endRect.left - containerRect.left + endRect.width / 2}px`;
+                    packet.style.top = `${endRect.top - containerRect.top + endRect.height / 2}px`;
+                }, 50);
+
+                // Remove packet after animation
+                setTimeout(() => {
+                    packet.remove();
+                }, 1100);
+            }
+        }
+
+        function resetState() {
+            currentStep = -1;
+            nextBtn.textContent = 'Start';
+            explainerText.textContent = 'Click "Start" to begin the data flow simulation.';
+            document.querySelectorAll('.arch-box.highlight').forEach(el => el.classList.remove('highlight'));
+        }
+
+        nextBtn.addEventListener('click', runStep);
+
+    </script>
+</body>
+</html>
