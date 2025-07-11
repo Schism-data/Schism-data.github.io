@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ontological Codex - Quaternion Toroid Plot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        #info-box, #modal-backdrop {
+            z-index: 10;
+        }
+        #ui-container {
+             z-index: 5;
+        }
+        .panel-content {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #4a5568;
+            border-radius: 5px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        .modal {
+            z-index: 20;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div id="container" class="w-full h-screen absolute top-0 left-0 z-0"></div>
+
+    <div id="info-box" class="hidden absolute top-5 left-5 bg-gray-800 bg-opacity-90 p-3 rounded-lg shadow-lg max-w-xs">
+        <h3 id="info-label" class="font-bold text-md text-white"></h3>
+        <p id="info-q-val" class="text-sm text-gray-300 font-mono"></p>
+    </div>
+
+    <!-- UI Container -->
+    <div id="ui-container" class="absolute bottom-4 left-4 max-w-md w-full">
+        <div class="flex space-x-2">
+            <button id="data-panel-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-t-lg">Data & Playback</button>
+            <button id="visualizer-panel-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-t-lg">Visualizer</button>
+        </div>
+        <div id="controls-panel-container" class="bg-gray-800 bg-opacity-80 p-4 rounded-b-lg rounded-r-lg shadow-lg">
+            <!-- Data & Playback Panel -->
+            <div id="data-panel" class="panel-content">
+                <h2 class="text-lg font-semibold mb-2">Data & Playback</h2>
+                <textarea id="data-input" class="w-full h-24 bg-gray-900 text-gray-200 p-2 rounded-md text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+                <div class="flex space-x-2 mt-2">
+                     <button id="process-data-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">Process Data</button>
+                     <button id="reset-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">Reset to Default</button>
+                </div>
+                
+                <div id="playback-controls" class="mt-3 border-t border-gray-600 pt-3">
+                    <div class="mb-3">
+                        <label for="stream-slider" class="block text-sm font-medium text-gray-300">Number of Streams: <span id="stream-count-label" class="font-bold text-blue-400">3</span></label>
+                        <input id="stream-slider" type="range" min="3" max="9" value="3" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                     <div class="flex items-center justify-between mb-2">
+                        <button id="prev-step-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded-md transition-colors duration-300">&lt;&lt; Prev</button>
+                        <p id="step-counter" class="text-center font-mono text-sm">Step: 0 / 0</p>
+                        <button id="next-step-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded-md transition-colors duration-300">Next &gt;&gt;</button>
+                     </div>
+                     <div class="flex space-x-2 mt-2">
+                        <button id="play-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">Play</button>
+                        <button id="pause-btn" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300 btn-disabled" disabled>Pause</button>
+                        <button id="speed-mode-btn" class="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">Populate Instantly</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Visualizer Panel -->
+            <div id="visualizer-panel" class="panel-content hidden">
+                 <h3 class="text-lg font-semibold mb-2">Ontological Codex</h3>
+                 <div class="flex space-x-2">
+                     <button id="compression-step-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">Compression Step (0)</button>
+                     <button id="temporal-flow-btn" class="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">Temporal Flow</button>
+                 </div>
+                 <div class="mt-4 border-t border-gray-600 pt-3">
+                    <h3 class="text-lg font-semibold mb-2">Data Management</h3>
+                    <div class="flex space-x-2">
+                         <button id="export-btn" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">Export Codex</button>
+                         <button id="load-btn" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">Load Codex</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Backdrop -->
+    <div id="modal-backdrop" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <!-- Export Modal -->
+        <div id="export-modal" class="modal hidden bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl">
+            <h2 class="text-2xl font-bold mb-4">Ontological Codex Data</h2>
+            <p class="text-gray-400 mb-4">This JSON contains the full hierarchical data for the visualization.</p>
+            <textarea id="export-textarea" readonly class="w-full h-64 bg-gray-900 text-gray-200 p-2 rounded-md text-xs font-mono"></textarea>
+            <div class="mt-4 flex justify-end space-x-2">
+                <button id="copy-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Copy to Clipboard</button>
+                <button onclick="closeModal()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Close</button>
+            </div>
+        </div>
+        <!-- Load Modal -->
+        <div id="load-modal" class="modal hidden bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl">
+            <h2 class="text-2xl font-bold mb-4">Load Ontological Codex</h2>
+            <p class="text-gray-400 mb-4">Paste the codex JSON data here to reconstruct the visualization.</p>
+            <textarea id="load-textarea" class="w-full h-64 bg-gray-900 text-gray-200 p-2 rounded-md text-xs font-mono"></textarea>
+            <div class="mt-4 flex justify-end space-x-2">
+                <button id="visualize-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">Visualize</button>
+                <button onclick="closeModal()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Close</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const originalQuaternionDataString = `
+            day           : Q1=(0.00 + 0.55i + 0.54j + 0.06k), Q2=(0.24 + 0.17i + 0.47j + 0.11k)
+            monday        : Q1=(0.23 + 0.51i + 0.30j + 0.50k), Q2=(0.14 + 0.12i + 0.38j + 0.11k)
+            june          : Q1=(0.70 + 0.26i + 0.07j + 0.10k), Q2=(0.61 + 0.57i + 0.64j + 0.92k)
+            weather       : Q1=(0.59 + 0.30i + 0.88j + 0.50k), Q2=(0.92 + 0.83i + 0.52j + 0.38k)
+            forecast      : Q1=(0.43 + 0.46i + 0.96j + 0.17k), Q2=(0.95 + 0.45i + 0.23j + 0.27k)
+            coffee        : Q1=(0.03 + 0.25i + 0.21j + 0.55k), Q2=(0.13 + 0.92i + 0.31j + 0.27k)
+            emails        : Q1=(0.17 + 0.75i + 0.34j + 0.22k), Q2=(0.06 + 0.38i + 0.68j + 0.17k)
+            tasks         : Q1=(0.07 + 0.27i + 0.14j + 0.95k), Q2=(0.72 + 0.75i + 0.65j + 0.80k)
+            meeting       : Q1=(0.59 + 0.60i + 0.24j + 0.14k), Q2=(0.74 + 0.59i + 0.92j + 0.28k)
+            wednesday     : Q1=(0.07 + 0.07i + 0.42j + 0.45k), Q2=(0.45 + 0.88i + 0.21j + 0.92k)
+            prototype     : Q1=(0.23 + 0.63i + 0.70j + 0.63k), Q2=(0.82 + 0.00i + 0.59j + 0.31k)
+            ratio         : Q1=(0.67 + 0.81i + 0.81j + 0.81k), Q2=(0.71 + 0.57i + 0.88j + 0.38k)
+            harmonics     : Q1=(0.67 + 0.90i + 0.78j + 0.94k), Q2=(0.11 + 0.45i + 0.24j + 0.43k)
+            frequency     : Q1=(0.90 + 0.34i + 0.95j + 0.97k), Q2=(0.38 + 0.46i + 0.05j + 0.39k)
+            layers        : Q1=(0.39 + 0.62i + 0.87j + 0.14k), Q2=(0.28 + 0.85i + 0.14j + 0.88k)
+            synchronization: Q1=(0.89 + 0.03i + 0.58j + 0.13k), Q2=(0.90 + 0.92i + 0.45j + 0.18k)
+            lunch         : Q1=(0.10 + 0.33i + 0.57j + 0.26k), Q2=(0.55 + 0.47i + 0.60j + 0.28k)
+            break         : Q1=(0.02 + 0.92i + 0.59j + 0.37k), Q2=(0.80 + 0.82i + 0.65j + 0.96k)
+            recipe        : Q1=(0.69 + 0.13i + 0.17j + 0.13k), Q2=(0.70 + 0.01i + 0.34j + 0.36k)
+            salad         : Q1=(0.89 + 0.15i + 0.62j + 0.44k), Q2=(0.30 + 0.64i + 0.49j + 0.02k)
+            dressing      : Q1=(0.51 + 0.34i + 0.94j + 0.63k), Q2=(0.63 + 0.90i + 0.03j + 0.50k)
+            system        : Q1=(0.31 + 0.10i + 0.84j + 0.40k), Q2=(0.63 + 0.82i + 0.65j + 0.07k)
+            virtualization: Q1=(0.55 + 0.79i + 0.91j + 0.37k), Q2=(0.52 + 0.07i + 0.05j + 0.12k)
+            distortion    : Q1=(0.82 + 0.22i + 0.95j + 0.47k), Q2=(0.79 + 0.38i + 0.30j + 0.61k)
+            channel       : Q1=(0.74 + 1.00i + 0.15j + 0.74k), Q2=(0.55 + 0.93i + 0.25j + 0.30k)
+            walk          : Q1=(0.71 + 0.46i + 0.17j + 0.71k), Q2=(0.62 + 0.79i + 0.52j + 0.65k)
+            cloud         : Q1=(0.29 + 0.51i + 0.91j + 0.30k), Q2=(0.87 + 0.25i + 0.88j + 0.15k)
+            formations    : Q1=(0.29 + 0.44i + 0.03j + 0.21k), Q2=(0.37 + 0.72i + 0.53j + 0.67k)
+            patterns      : Q1=(0.67 + 0.38i + 0.10j + 0.50k), Q2=(0.48 + 0.04i + 0.96j + 0.15k)
+            notes         : Q1=(0.30 + 0.94i + 0.63j + 0.85k), Q2=(0.42 + 0.79i + 0.22j + 0.86k)
+            protocol      : Q1=(0.31 + 0.30i + 0.27j + 1.00k), Q2=(0.95 + 0.82i + 0.13j + 0.26k)
+            compression   : Q1=(0.25 + 0.06i + 0.79j + 0.11k), Q2=(0.21 + 0.35i + 0.63j + 0.59k)
+            insights      : Q1=(0.90 + 0.33i + 0.81j + 0.57k), Q2=(0.37 + 0.13i + 0.88j + 0.77k)
+            tomorrow      : Q1=(0.78 + 0.54i + 0.33j + 0.48k), Q2=(0.53 + 0.39i + 0.76j + 0.64k)
+        `;
+
+        // --- App State ---
+        let scene, camera, renderer, controls;
+        let raycaster, mouse;
+        let mainGroup, temporalFlowGroup;
+        let intersected;
+        let allData = [];
+        let currentDataIndex = -1;
+        let numStreams = 3;
+        const NODES_PER_TOROID_STREAM = 12;
+        let symbolicGeometries = [];
+        let isPlaying = false;
+        let playbackInterval;
+        let compressionStep = 0; // 0: none, 1: tier 2, 2: tier 3
+        
+        // --- DOM Elements ---
+        const container = document.getElementById('container');
+        const dataPanelBtn = document.getElementById('data-panel-btn');
+        const visualizerPanelBtn = document.getElementById('visualizer-panel-btn');
+        const dataPanel = document.getElementById('data-panel');
+        const visualizerPanel = document.getElementById('visualizer-panel');
+        const controlsPanelContainer = document.getElementById('controls-panel-container');
+        const speedModeBtn = document.getElementById('speed-mode-btn');
+        const temporalFlowBtn = document.getElementById('temporal-flow-btn');
+        const dataInput = document.getElementById('data-input');
+        const streamSlider = document.getElementById('stream-slider');
+        const streamCountLabel = document.getElementById('stream-count-label');
+        const prevBtn = document.getElementById('prev-step-btn');
+        const nextBtn = document.getElementById('next-step-btn');
+        const stepCounter = document.getElementById('step-counter');
+        const playBtn = document.getElementById('play-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const processDataBtn = document.getElementById('process-data-btn');
+        const compressionStepBtn = document.getElementById('compression-step-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const loadBtn = document.getElementById('load-btn');
+        const visualizeBtn = document.getElementById('visualize-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const infoBox = document.getElementById('info-box');
+        const infoLabel = document.getElementById('info-label');
+        const infoQVal = document.getElementById('info-q-val');
+
+
+        /**
+         * Parses raw string data into a flat array of individual quaternion objects.
+         */
+        function parseData(dataString) {
+            allData = [];
+            const lines = dataString.trim().split('\n');
+            const regex = /(.+?)\s*:\s*Q1=\((.*?)\s*\+\s*(.*?)i\s*\+\s*(.*?)j\s*\+\s*(.*?)k\),\s*Q2=\((.*?)\s*\+\s*(.*?)i\s*\+\s*(.*?)j\s*\+\s*(.*?)k\)/;
+
+            lines.forEach(line => {
+                const match = line.match(regex);
+                if (match) {
+                    const label = match[1].trim();
+                    const q1 = { w: parseFloat(match[2]), i: parseFloat(match[3]), j: parseFloat(match[4]), k: parseFloat(match[5]) };
+                    const q2 = { w: parseFloat(match[6]), i: parseFloat(match[7]), j: parseFloat(match[8]), k: parseFloat(match[9]) };
+                    allData.push({ label: `${label} (Q1)`, quat: q1, isClickable: true });
+                    allData.push({ label: `${label} (Q2)`, quat: q2, isClickable: true });
+                }
+            });
+        }
+        
+        function clearScene() {
+            if (mainGroup) {
+                scene.remove(mainGroup);
+                mainGroup.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(m => m.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                });
+            }
+            if (temporalFlowGroup) {
+                scene.remove(temporalFlowGroup);
+                 temporalFlowGroup.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) child.material.dispose();
+                });
+            }
+            mainGroup = new THREE.Group();
+            temporalFlowGroup = new THREE.Group();
+            scene.add(mainGroup);
+            scene.add(temporalFlowGroup);
+        }
+
+        function createSymbolicGeometries() {
+             symbolicGeometries = [
+                new THREE.BoxGeometry(0.15, 0.15, 0.15),
+                new THREE.ConeGeometry(0.1, 0.2, 8), 
+                new THREE.TorusGeometry(0.1, 0.04, 8, 16),
+                new THREE.TetrahedronGeometry(0.12),
+                new THREE.DodecahedronGeometry(0.1),
+                new THREE.OctahedronGeometry(0.12)
+            ];
+            symbolicGeometries[1].rotateX(Math.PI / 2); // Pre-rotate cone
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111827);
+            createSymbolicGeometries();
+
+            const aspect = window.innerWidth / window.innerHeight;
+            camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 2000);
+            camera.position.set(5, 5, 10);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            directionalLight.position.set(5, 10, 7.5);
+            scene.add(directionalLight);
+
+            const gridHelper = new THREE.GridHelper(50, 50, 0x444444, 0x444444);
+            gridHelper.position.y = -5;
+            scene.add(gridHelper);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            
+            dataPanelBtn.addEventListener('click', () => togglePanel('data'));
+            visualizerPanelBtn.addEventListener('click', () => togglePanel('visualizer'));
+            streamSlider.addEventListener('input', handleStreamSliderChange);
+            prevBtn.addEventListener('click', handlePrevStep);
+            nextBtn.addEventListener('click', handleNextStep);
+            playBtn.addEventListener('click', handlePlay);
+            pauseBtn.addEventListener('click', handlePause);
+            speedModeBtn.addEventListener('click', handleSpeedMode);
+            resetBtn.addEventListener('click', handleReset);
+            processDataBtn.addEventListener('click', handleProcessNewData);
+            compressionStepBtn.addEventListener('click', handleCompressionStep);
+            temporalFlowBtn.addEventListener('click', handleTemporalFlow);
+            exportBtn.addEventListener('click', handleExport);
+            loadBtn.addEventListener('click', () => openModal('load-modal'));
+            visualizeBtn.addEventListener('click', handleVisualizeCodex);
+            copyBtn.addEventListener('click', handleCopy);
+            
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('mousemove', onMouseMove);
+            
+            handleReset();
+        }
+
+        /**
+         * Main plotting function. Renders the codex based on the current data and compression step.
+         */
+        function plotCodex() {
+            clearScene();
+            
+            const torusMajorRadius = 3.5;
+            const torusMinorRadius = 1.0;
+            const toroidStackHeight = 3.0;
+
+            const wireframeMaterial = new THREE.MeshBasicMaterial({ wireframe: true, transparent: true });
+            const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.1, roughness: 0.8 });
+            const sphereGeom = new THREE.SphereGeometry(0.05, 16, 16);
+            const guideTorusGeom = new THREE.TorusGeometry(torusMajorRadius, torusMinorRadius, 16, 100);
+            const guideTorusMat = new THREE.MeshBasicMaterial({ color: 0x4b5563, wireframe: true, transparent: true, opacity: 0.1 });
+            
+            // Tier 2 & 3 Geometries and Materials
+            const tier2Geom = new THREE.TorusKnotGeometry(0.2, 0.05, 100, 16);
+            const tier2Mat = new THREE.MeshBasicMaterial({ color: 0x9333ea, wireframe: true, transparent: true });
+            const tier3Geom = new THREE.IcosahedronGeometry(0.5, 1);
+            const tier3Mat = new THREE.MeshNormalMaterial({ wireframe: false });
+            const lineMatTier1to2 = new THREE.LineBasicMaterial({ color: 0x6ee7b7, transparent: true, opacity: 0.5 });
+            const lineMatTier2to3 = new THREE.LineBasicMaterial({ color: 0xfde047, transparent: true, opacity: 0.7, linewidth: 2 });
+
+            let plottedToroids = new Set();
+            let pointsByLevelAndStream = {};
+
+            // --- Tier 1: Plot Individual Nodes ---
+            for (let i = 0; i <= currentDataIndex; i++) {
+                const data = allData[i];
+                if (!data) continue;
+
+                const streamIndex = i % numStreams;
+                const stepInStream = Math.floor(i / numStreams);
+                const toroidIndex = Math.floor(stepInStream / NODES_PER_TOROID_STREAM);
+                
+                if (!pointsByLevelAndStream[toroidIndex]) pointsByLevelAndStream[toroidIndex] = {};
+                if (!pointsByLevelAndStream[toroidIndex][streamIndex]) pointsByLevelAndStream[toroidIndex][streamIndex] = [];
+                
+                const nodeIndexOnToroid = stepInStream % NODES_PER_TOROID_STREAM;
+                const streamAngle = (streamIndex / numStreams) * Math.PI * 2;
+                const nodeAngle = (nodeIndexOnToroid / NODES_PER_TOROID_STREAM) * Math.PI * 2;
+                
+                const yOffset = toroidIndex * toroidStackHeight;
+                const x = (torusMajorRadius + torusMinorRadius * Math.cos(nodeAngle)) * Math.cos(streamAngle);
+                const y = yOffset + torusMinorRadius * Math.sin(nodeAngle);
+                const z = (torusMajorRadius + torusMinorRadius * Math.cos(nodeAngle)) * Math.sin(streamAngle);
+                const nodePosition = new THREE.Vector3(x, y, z);
+                
+                data.position = nodePosition; // Store position for line drawing
+                pointsByLevelAndStream[toroidIndex][streamIndex].push(data);
+
+                if (!plottedToroids.has(toroidIndex) && compressionStep < 3) {
+                    const guideTorus = new THREE.Mesh(guideTorusGeom, guideTorusMat);
+                    guideTorus.rotation.x = Math.PI / 2;
+                    guideTorus.position.y = yOffset;
+                    mainGroup.add(guideTorus);
+                    plottedToroids.add(toroidIndex);
+                }
+
+                const nodeGroup = new THREE.Group();
+                nodeGroup.position.copy(nodePosition);
+                
+                const geomIndex = i % symbolicGeometries.length;
+                const symbolicGeom = symbolicGeometries[geomIndex];
+                const color = (i % 2 === 0) ? 0x3b82f6 : 0xf97316;
+                const symbolicMesh = new THREE.Mesh(symbolicGeom, wireframeMaterial.clone());
+                symbolicMesh.material.color.set(color);
+                symbolicMesh.material.opacity = (compressionStep > 0) ? 0.8 : 1.0;
+                symbolicMesh.userData = data;
+                
+                const sphereGroup = new THREE.Group();
+                const sphereMesh = new THREE.Mesh(sphereGeom, sphereMaterial);
+                const axesHelper = new THREE.AxesHelper(0.3);
+                sphereGroup.add(sphereMesh, axesHelper);
+
+                const quat = new THREE.Quaternion(data.quat.i, data.quat.j, data.quat.k, data.quat.w).normalize();
+                symbolicMesh.quaternion.copy(quat);
+                sphereGroup.quaternion.copy(quat);
+
+                nodeGroup.add(symbolicMesh, sphereGroup);
+                mainGroup.add(nodeGroup);
+            }
+
+            // --- Tiers 2 & 3: Plot Compression Nodes and Lines ---
+            let allLevelAverages = [];
+            for (const level in pointsByLevelAndStream) {
+                const yOffset = level * toroidStackHeight;
+                let streamAveragesForLevel = [];
+                
+                for (const stream in pointsByLevelAndStream[level]) {
+                    const streamData = pointsByLevelAndStream[level][stream];
+                    if (streamData.length === 0) continue;
+
+                    const quatsInStream = streamData.map(d => new THREE.Quaternion(d.quat.i, d.quat.j, d.quat.k, d.quat.w));
+                    const avgStreamQuat = averageQuaternions(quatsInStream);
+                    
+                    const streamAngle = (stream / numStreams) * Math.PI * 2;
+                    const tier2Position = new THREE.Vector3(
+                        torusMajorRadius * Math.cos(streamAngle),
+                        yOffset,
+                        torusMajorRadius * Math.sin(streamAngle)
+                    );
+                    streamAveragesForLevel.push({quat: avgStreamQuat, pos: tier2Position});
+
+                    if (compressionStep >= 1) {
+                        const tier2Node = new THREE.Mesh(tier2Geom, tier2Mat.clone());
+                        tier2Node.position.copy(tier2Position);
+                        tier2Node.quaternion.copy(avgStreamQuat);
+                        tier2Node.material.opacity = (compressionStep > 1) ? 0.8 : 1.0;
+                        tier2Node.userData = { isClickable: true, label: `Lvl ${parseInt(level)+1} Stream ${parseInt(stream)+1} Avg`, quat: {w:avgStreamQuat.w, i:avgStreamQuat.x, j:avgStreamQuat.y, k:avgStreamQuat.z}};
+                        mainGroup.add(tier2Node);
+
+                        // Draw lines from Tier 1 to Tier 2
+                        streamData.forEach(nodeData => {
+                            const lineGeom = new THREE.BufferGeometry().setFromPoints([nodeData.position, tier2Position]);
+                            const line = new THREE.Line(lineGeom, lineMatTier1to2);
+                            mainGroup.add(line);
+                        });
+                    }
+                }
+                
+                if(streamAveragesForLevel.length > 0) {
+                    const levelAvgQuat = averageQuaternions(streamAveragesForLevel.map(d => d.quat));
+                    const tier3Position = new THREE.Vector3(0, yOffset, 0);
+                    allLevelAverages.push({quat: levelAvgQuat, pos: tier3Position});
+
+                    if (compressionStep >= 2) {
+                        const tier3Node = new THREE.Mesh(tier3Geom, tier3Mat);
+                        tier3Node.position.copy(tier3Position);
+                        tier3Node.quaternion.copy(levelAvgQuat);
+                        tier3Node.userData = { isClickable: true, label: `Level ${parseInt(level)+1} Final Avg`, quat: {w:levelAvgQuat.w, i:levelAvgQuat.x, j:levelAvgQuat.y, k:levelAvgQuat.z}};
+                        mainGroup.add(tier3Node);
+                        
+                        // Draw lines from Tier 2 to Tier 3
+                        streamAveragesForLevel.forEach(avgData => {
+                             const lineGeom = new THREE.BufferGeometry().setFromPoints([avgData.pos, tier3Position]);
+                             const line = new THREE.Line(lineGeom, lineMatTier2to3);
+                             mainGroup.add(line);
+                        });
+                    }
+                }
+            }
+            updateUI();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            render();
+        }
+
+        function render() {
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = mainGroup ? raycaster.intersectObjects(mainGroup.children, true) : [];
+            const meshIntersects = intersects.filter(i => i.object.userData && i.object.userData.isClickable);
+
+            if (meshIntersects.length > 0) {
+                const intersectedMesh = meshIntersects[0].object;
+                
+                if (intersected !== intersectedMesh) {
+                    if (intersected) intersected.scale.set(1, 1, 1);
+                    intersected = intersectedMesh;
+                    intersected.scale.set(2.0, 2.0, 2.0);
+
+                    const data = intersectedMesh.userData;
+                    const q = data.quat;
+                    infoLabel.textContent = data.label;
+                    
+                    if (q) {
+                        infoQVal.textContent = `Q: (${q.w.toFixed(2)} + ${q.i.toFixed(2)}i + ${q.j.toFixed(2)}j + ${q.k.toFixed(2)}k)`;
+                    } else {
+                         infoQVal.textContent = 'Q: Data not available';
+                    }
+                    infoBox.classList.remove('hidden');
+                }
+            } else {
+                if (intersected) intersected.scale.set(1, 1, 1);
+                intersected = null;
+                infoBox.classList.add('hidden');
+            }
+            renderer.render(scene, camera);
+        }
+
+        // --- UI Handlers ---
+        
+        function handlePlay() {
+            if (isPlaying) return;
+            isPlaying = true;
+            playBtn.disabled = true;
+            playBtn.classList.add('btn-disabled');
+            pauseBtn.disabled = false;
+            pauseBtn.classList.remove('btn-disabled');
+
+            playbackInterval = setInterval(() => {
+                if (currentDataIndex < allData.length - 1) {
+                    handleNextStep();
+                } else {
+                    handlePause();
+                }
+            }, 200);
+        }
+
+        function handlePause() {
+            if (!isPlaying) return;
+            isPlaying = false;
+            clearInterval(playbackInterval);
+            playBtn.disabled = false;
+            playBtn.classList.remove('btn-disabled');
+            pauseBtn.disabled = true;
+            pauseBtn.classList.add('btn-disabled');
+        }
+
+        function handleNextStep() {
+            if (currentDataIndex < allData.length - 1) {
+                currentDataIndex++;
+                plotCodex();
+            }
+        }
+
+        function handlePrevStep() {
+            if (currentDataIndex > -1) {
+                currentDataIndex--;
+                plotCodex();
+            }
+        }
+        
+        function handleSpeedMode() {
+            handlePause();
+            currentDataIndex = allData.length - 1;
+            plotCodex();
+        }
+
+        function handleProcessNewData() {
+            handlePause();
+            compressionStep = 0;
+            parseData(dataInput.value);
+            currentDataIndex = -1;
+            plotCodex();
+        }
+
+        function handleReset() {
+            dataInput.value = originalQuaternionDataString.trim();
+            handleProcessNewData();
+        }
+        
+        function handleStreamSliderChange(event) {
+            numStreams = parseInt(event.target.value);
+            streamCountLabel.textContent = numStreams;
+            plotCodex();
+        }
+        
+        function handleCompressionStep() {
+            compressionStep = (compressionStep + 1) % 3;
+            if (compressionStep > 0) {
+                handlePause(); // Stop playback if we enter a compression view
+            }
+            plotCodex();
+        }
+
+        function updateUI() {
+            const isPlaybackDisabled = compressionStep > 0;
+            playBtn.disabled = isPlaybackDisabled || isPlaying;
+            pauseBtn.disabled = isPlaybackDisabled || !isPlaying;
+            nextBtn.disabled = isPlaybackDisabled || currentDataIndex >= allData.length - 1;
+            prevBtn.disabled = isPlaybackDisabled || currentDataIndex < 0;
+
+            playBtn.classList.toggle('btn-disabled', playBtn.disabled);
+            nextBtn.classList.toggle('btn-disabled', nextBtn.disabled);
+            prevBtn.classList.toggle('btn-disabled', prevBtn.disabled);
+            
+            compressionStepBtn.textContent = `Compression Step (${compressionStep})`;
+            stepCounter.textContent = `Step: ${currentDataIndex + 1} / ${allData.length}`;
+        }
+        
+        function handleTemporalFlow() {
+            // First, ensure all data points have positions calculated
+            if (currentDataIndex < allData.length - 1) {
+                handleSpeedMode();
+            }
+            
+            temporalFlowGroup.clear(); // Clear previous flow lines
+            const points = [];
+            for(let i = 0; i <= currentDataIndex; i++) {
+                if (allData[i] && allData[i].position) {
+                    points.push(allData[i].position);
+                }
+            }
+            
+            if (points.length > 1) {
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff00ff, linewidth: 2 });
+                const temporalLine = new THREE.Line(lineGeometry, lineMaterial);
+                temporalFlowGroup.add(temporalLine);
+            }
+        }
+
+        // --- Codex Export & Import ---
+        function handleExport() {
+            const pointsPerLevel = NODES_PER_TOROID_STREAM * numStreams;
+            const numLevels = Math.ceil(allData.length / pointsPerLevel);
+            const codexLevels = [];
+
+            for (let i = 0; i < numLevels; i++) {
+                const levelStreams = [];
+                const levelQuats = [];
+
+                for (let j = 0; j < numStreams; j++) {
+                    const streamNodes = [];
+                    const streamQuats = [];
+                    const startIndex = i * pointsPerLevel + j;
+                    
+                    for (let k = 0; k < NODES_PER_TOROID_STREAM; k++) {
+                        const dataIndex = startIndex + k * numStreams;
+                        if (dataIndex < allData.length) {
+                            const nodeData = allData[dataIndex];
+                            streamNodes.push({label: nodeData.label, quat: nodeData.quat});
+                            streamQuats.push(new THREE.Quaternion(nodeData.quat.i, nodeData.quat.j, nodeData.quat.k, nodeData.quat.w));
+                        }
+                    }
+                    
+                    if (streamQuats.length > 0) {
+                        const streamAvg = averageQuaternions(streamQuats);
+                        levelQuats.push(streamAvg);
+                        levelStreams.push({
+                            streamIndex: j,
+                            streamAverage: { w: streamAvg.w, x: streamAvg.x, y: streamAvg.y, z: streamAvg.z },
+                            nodes: streamNodes
+                        });
+                    }
+                }
+                
+                if (levelQuats.length > 0) {
+                    const levelAvg = averageQuaternions(levelQuats);
+                    codexLevels.push({
+                        level: i,
+                        levelAverage: { w: levelAvg.w, x: levelAvg.x, y: levelAvg.y, z: levelAvg.z },
+                        streams: levelStreams
+                    });
+                }
+            }
+            
+            const exportPacket = {
+                metadata: {
+                    numStreams: numStreams,
+                    nodesPerStream: NODES_PER_TOROID_STREAM
+                },
+                codex: codexLevels
+            };
+            
+            document.getElementById('export-textarea').value = JSON.stringify(exportPacket, null, 2);
+            openModal('export-modal');
+        }
+
+        function averageQuaternions(quats) {
+            if (quats.length === 0) return new THREE.Quaternion();
+            if (quats.length === 1) return quats[0].clone();
+            
+            const avg = quats[0].clone();
+            for (let i = 1; i < quats.length; i++) {
+                if (avg.dot(quats[i]) < 0) {
+                    quats[i].conjugate().negate();
+                }
+                avg.slerp(quats[i], 1.0 / (i + 1));
+            }
+            return avg.normalize();
+        }
+
+        function handleVisualizeCodex() {
+            try {
+                const jsonString = document.getElementById('load-textarea').value;
+                const dataPacket = JSON.parse(jsonString);
+                
+                if (!dataPacket.metadata || !dataPacket.codex) {
+                    throw new Error("Invalid codex data structure.");
+                }
+
+                handlePause();
+                plotFromCodex(dataPacket);
+                closeModal();
+
+            } catch (e) {
+                alert("Error parsing JSON. Please ensure it's valid codex data from this tool.\n\n" + e.message);
+            }
+        }
+        
+        function plotFromCodex(dataPacket) {
+            clearScene();
+            
+            const { numStreams, nodesPerStream } = dataPacket.metadata;
+            streamSlider.value = numStreams;
+            streamCountLabel.textContent = numStreams;
+            window.numStreams = numStreams;
+            compressionStep = 2; // Show full codex
+            updateUI();
+
+            const torusMajorRadius = 3.5;
+            const torusMinorRadius = 1.0;
+            const toroidStackHeight = 3.0;
+
+            const wireframeMaterial = new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0.8 });
+            const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.1, roughness: 0.8 });
+            const sphereGeom = new THREE.SphereGeometry(0.05, 16, 16);
+            const tier2Geom = new THREE.TorusKnotGeometry(0.2, 0.05, 100, 16);
+            const tier2Mat = new THREE.MeshBasicMaterial({ color: 0x9333ea, wireframe: true });
+            const tier3Geom = new THREE.IcosahedronGeometry(0.5, 1);
+            const tier3Mat = new THREE.MeshNormalMaterial({ wireframe: false });
+            const lineMatTier1to2 = new THREE.LineBasicMaterial({ color: 0x6ee7b7, opacity: 0.5 });
+            const lineMatTier2to3 = new THREE.LineBasicMaterial({ color: 0xfde047, opacity: 0.7, linewidth: 2 });
+            
+            dataPacket.codex.forEach(levelData => {
+                const yOffset = levelData.level * toroidStackHeight;
+                const tier3Position = new THREE.Vector3(0, yOffset, 0);
+                
+                // Plot Tier 3
+                const q3 = levelData.levelAverage;
+                const tier3Node = new THREE.Mesh(tier3Geom, tier3Mat);
+                tier3Node.position.copy(tier3Position);
+                tier3Node.quaternion.set(q3.x, q3.y, q3.z, q3.w);
+                mainGroup.add(tier3Node);
+
+                levelData.streams.forEach(streamData => {
+                    const streamAngle = (streamData.streamIndex / numStreams) * Math.PI * 2;
+                    const tier2Position = new THREE.Vector3(
+                        torusMajorRadius * Math.cos(streamAngle),
+                        yOffset,
+                        torusMajorRadius * Math.sin(streamAngle)
+                    );
+                    
+                    // Plot Tier 2
+                    const q2 = streamData.streamAverage;
+                    const tier2Node = new THREE.Mesh(tier2Geom, tier2Mat);
+                    tier2Node.position.copy(tier2Position);
+                    tier2Node.quaternion.set(q2.x, q2.y, q2.z, q2.w);
+                    mainGroup.add(tier2Node);
+                    
+                    // Line from Tier 2 to Tier 3
+                    mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([tier2Position, tier3Position]), lineMatTier2to3));
+
+                    streamData.nodes.forEach((nodeData, nodeIndex) => {
+                        const nodeAngle = (nodeIndex / nodesPerStream) * Math.PI * 2;
+                        const x = (torusMajorRadius + torusMinorRadius * Math.cos(nodeAngle)) * Math.cos(streamAngle);
+                        const y = yOffset + torusMinorRadius * Math.sin(nodeAngle);
+                        const z = (torusMajorRadius + torusMinorRadius * Math.cos(nodeAngle)) * Math.sin(streamAngle);
+                        const tier1Position = new THREE.Vector3(x, y, z);
+
+                        // Plot Tier 1
+                        const color = (nodeData.label.includes('Q1')) ? 0x3b82f6 : 0xf97316;
+                        const symbolicGeom = symbolicGeometries[nodeIndex % symbolicGeometries.length];
+                        const symbolicMesh = new THREE.Mesh(symbolicGeom, wireframeMaterial.clone());
+                        symbolicMesh.material.color.set(color);
+                        symbolicMesh.position.copy(tier1Position);
+                        const q1 = nodeData.quat;
+                        symbolicMesh.quaternion.set(q1.i, q1.j, q1.k, q1.w);
+                        mainGroup.add(symbolicMesh);
+                        
+                        // Line from Tier 1 to Tier 2
+                        mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([tier1Position, tier2Position]), lineMatTier1to2));
+                    });
+                });
+            });
+        }
+
+        // --- Modal & Utility Functions ---
+        function openModal(modalId) {
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-backdrop').classList.add('hidden');
+            document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
+        }
+
+        function togglePanel(panelName) {
+            const isDataPanelOpen = !dataPanel.classList.contains('hidden');
+            const isVisualizerPanelOpen = !visualizerPanel.classList.contains('hidden');
+
+            if (panelName === 'data') {
+                if (isDataPanelOpen) {
+                    dataPanel.classList.add('hidden');
+                } else {
+                    dataPanel.classList.remove('hidden');
+                    visualizerPanel.classList.add('hidden');
+                }
+            } else if (panelName === 'visualizer') {
+                 if (isVisualizerPanelOpen) {
+                    visualizerPanel.classList.add('hidden');
+                } else {
+                    visualizerPanel.classList.remove('hidden');
+                    dataPanel.classList.add('hidden');
+                }
+            }
+            
+            const anyPanelOpen = !dataPanel.classList.contains('hidden') || !visualizerPanel.classList.contains('hidden');
+            if (anyPanelOpen) {
+                 controlsPanelContainer.classList.remove('hidden');
+            } else {
+                 controlsPanelContainer.classList.add('hidden');
+            }
+        }
+
+
+        function handleCopy() {
+            const textarea = document.getElementById('export-textarea');
+            textarea.select();
+            document.execCommand('copy');
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onMouseMove(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
+        init();
+        animate();
+
+    </script>
+</body>
+</html>
