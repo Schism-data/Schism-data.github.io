@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPU Orchestration of a Shared Data Stream</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0e1a;
+            color: #f3f4f6;
+            overflow: hidden;
+        }
+        .panel {
+            border: 1px solid #4b5563;
+            background-color: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(5px);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            transition: all 0.5s ease-in-out;
+            position: absolute;
+            z-index: 10;
+        }
+        .panel.highlight {
+            border-color: #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+        }
+        .stream-ring {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border: 2px dashed #374151;
+            border-radius: 50%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            animation: spin 60s linear infinite;
+        }
+        .stream-packet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            left: calc(50% - 6px);
+            top: 0px;
+            transform-origin: 6px 250px; /* Half of packet and ring width */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s;
+        }
+        .agent-swarm {
+            position: absolute;
+            z-index: 5;
+            text-align: center;
+        }
+        .comm-packet {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 1s ease-out;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .illumination-pulse {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid #a78bfa;
+            opacity: 0;
+            animation: pulse 1.5s ease-out;
+            z-index: 5;
+        }
+        .cuda-core {
+            width: 10px;
+            height: 10px;
+            background-color: #374151;
+            border-radius: 2px;
+            transition: background-color 0.3s;
+        }
+        @keyframes spin {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center mb-4 z-30">
+        <h1 class="text-2xl md:text-3xl font-bold">GPU Orchestration of a Shared Data Stream</h1>
+        <p id="explainer-text" class="text-md text-gray-400 mt-1 h-10">Click "Start" to begin the simulation.</p>
+    </div>
+
+    <div id="simulation-area" class="relative w-full h-[80vh]">
+        <!-- GPU Orchestrator -->
+        <div id="orchestrator" class="panel w-52 h-52 flex flex-col items-center justify-center" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+            <h3 class="font-bold">GPU Orchestrator</h3>
+            <i class="fas fa-microchip fa-2x text-gray-400 my-2"></i>
+            <p class="text-xs">Frequency Queue:</p>
+            <div id="freq-queue" class="mt-1 px-3 py-1 rounded-full bg-gray-700 text-white font-bold text-sm transition-colors duration-300">
+                IDLE
+            </div>
+        </div>
+        
+        <!-- CUDA Block -->
+        <div id="cuda-block" class="panel w-52 h-24" style="left: 50%; top: 15%; transform: translateX(-50%);">
+             <h3 class="font-bold text-center text-sm">CUDA Cores</h3>
+             <div id="cuda-grid" class="grid grid-cols-10 gap-1 mt-2 p-1"></div>
+        </div>
+
+        <!-- Edge Devices -->
+        <div id="deviceA" class="panel w-48" style="left: 5%; top: 50%; transform: translateY(-50%);"></div>
+        <div id="deviceB" class="panel w-48" style="right: 5%; top: 15%;"></div>
+        <div id="deviceC" class="panel w-48" style="right: 5%; bottom: 15%;"></div>
+
+        <!-- External Agents & Relay -->
+        <div class="agent-swarm" style="left: 1%; top: 10%;"><i class="fab fa-slack fa-2x text-gray-600"></i><p class="text-xs text-gray-600">Integrations</p></div>
+        <div class="agent-swarm" style="right: 1%; top: 50%;"><i class="fas fa-window-maximize fa-2x text-gray-600"></i><p class="text-xs text-gray-600">Overlays</p></div>
+        <div class="agent-swarm" style="left: 50%; bottom: 1%; transform: translateX(-50%);"><i class="fas fa-server fa-2x text-gray-600"></i><p class="text-xs text-gray-600">Relay Server</p></div>
+        
+        <!-- Data Stream -->
+        <div id="stream-ring" class="stream-ring"></div>
+    </div>
+
+    <div class="mt-4 z-30">
+        <button id="next-step-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+            Start
+        </button>
+    </div>
+
+    <script>
+        const simArea = document.getElementById('simulation-area');
+        const orchestrator = document.getElementById('orchestrator');
+        const cudaBlock = document.getElementById('cuda-block');
+        const cudaGrid = document.getElementById('cuda-grid');
+        const freqQueueEl = document.getElementById('freq-queue');
+        const nextBtn = document.getElementById('next-step-btn');
+        const explainerText = document.getElementById('explainer-text');
+        const streamRing = document.getElementById('stream-ring');
+        const devices = ['A', 'B', 'C'];
+        const agents = document.querySelectorAll('.agent-swarm');
+        const semanticAreas = {
+            hot: { name: 'Hot', color: 'bg-red-500', hex: '#ef4444' },
+            warm: { name: 'Warm', color: 'bg-yellow-500', hex: '#eab308' },
+            static: { name: 'Static', color: 'bg-blue-500', hex: '#3b82f6' }
+        };
+
+        function setup() {
+            // Setup Devices
+            devices.forEach(id => {
+                const deviceEl = document.getElementById(`device${id}`);
+                deviceEl.innerHTML = `
+                    <h3 class="font-bold text-center text-sm">Edge AI Device ${id}</h3>
+                    <p class="text-xs text-center text-gray-400">On-Device Encoder</p>
+                    <div class="flex justify-center items-center text-xs text-gray-500 mt-2 gap-2">
+                        <span><i class="fas fa-key"></i> Keys</span>
+                        <span><i class="fas fa-box-archive"></i> Local DB</span>
+                    </div>
+                `;
+            });
+            // Setup CUDA Cores
+            for(let i=0; i<40; i++) {
+                const core = document.createElement('div');
+                core.className = 'cuda-core';
+                cudaGrid.appendChild(core);
+            }
+        }
+
+        function animatePacket(startEl, endEl, color, duration = 1000, content = '') {
+            const packet = document.createElement('div');
+            packet.className = `comm-packet ${color}`;
+            packet.innerHTML = content;
+            simArea.appendChild(packet);
+            
+            const startRect = startEl.getBoundingClientRect();
+            const endRect = endEl.getBoundingClientRect();
+            const simRect = simArea.getBoundingClientRect();
+
+            packet.style.left = `${startRect.left - simRect.left + startRect.width / 2}px`;
+            packet.style.top = `${startRect.top - simRect.top + startRect.height / 2}px`;
+            
+            setTimeout(() => {
+                packet.style.opacity = '1';
+                packet.style.transition = `all ${duration/1000}s ease-in-out`;
+                packet.style.left = `${endRect.left - simRect.left + endRect.width / 2}px`;
+                packet.style.top = `${endRect.top - simRect.top + endRect.height / 2}px`;
+            }, 50);
+
+            setTimeout(() => packet.remove(), duration + 100);
+        }
+
+        function addPacketToStream(color) {
+            const packet = document.createElement('div');
+            packet.className = `stream-packet ${color}`;
+            packet.innerHTML = `<i class="fas fa-lock text-white/50 text-[6px]"></i>`;
+            const angle = Math.random() * 360;
+            packet.style.transform = `rotate(${angle}deg)`;
+            streamRing.appendChild(packet);
+            return packet;
+        }
+        
+        function animateIllumination(startEl, endEl) {
+            const pulse = document.createElement('div');
+            pulse.className = 'illumination-pulse';
+            simArea.appendChild(pulse);
+            
+            const startRect = startEl.getBoundingClientRect();
+            const simRect = simArea.getBoundingClientRect();
+            pulse.style.left = `${startRect.left - simRect.left}px`;
+            pulse.style.top = `${startRect.top - simRect.top}px`;
+            pulse.style.width = `${startRect.width}px`;
+            pulse.style.height = `${startRect.height}px`;
+
+            setTimeout(() => pulse.remove(), 1500);
+        }
+
+        const steps = [
+            { text: "System idle. Edge devices listen for data from application integrations." },
+            { action: 'ingest', text: "Step 1: Raw context is captured by the SDK on each local-first device." },
+            { action: 'encode', text: "Step 2: On-device AI encodes data into encrypted SHD-CCP packets and publishes them to the shared stream." },
+            { action: 'extract', area: 'hot', text: "Step 3: Orchestrator requests 'Hot' data. Matching packets are pulled from the stream." },
+            { action: 'dispatch', area: 'hot', text: "Step 4: The batch of 'Hot' packets is dispatched to parallel CUDA cores for processing." },
+            { action: 'augment', text: "Step 5: The result is a real-time 'Perspective Illumination' sent back to the user." },
+            { action: 'extract', area: 'warm', text: "Step 6: The cycle continues. The orchestrator now requests 'Warm' data." },
+            { action: 'dispatch', area: 'warm', text: "Step 7: The 'Warm' batch is dispatched for parallel processing." },
+            { action: 'augment', text: "Step 8: The 'Warm' data result is sent back as an illumination pulse." },
+            { action: 'extract', area: 'static', text: "Step 9: Finally, the orchestrator requests 'Static' data for background tasks." },
+            { action: 'dispatch', area: 'static', text: "Step 10: The 'Static' batch is processed, completing the full cycle." },
+            { action: 'augment', text: "Step 11: The final illumination is sent, and the system returns to idle." }
+        ];
+        let currentStep = -1;
+
+        function runStep() {
+            currentStep++;
+            if (currentStep >= steps.length) {
+                resetState();
+                return;
+            }
+            if (currentStep === 0) nextBtn.textContent = 'Next';
+            if (currentStep === steps.length - 1) nextBtn.textContent = 'Reset';
+
+            const step = steps[currentStep];
+            explainerText.textContent = step.text;
+            
+            document.querySelectorAll('.panel.highlight').forEach(el => el.classList.remove('highlight'));
+            
+            if (step.action) {
+                switch(step.action) {
+                    case 'ingest':
+                        animatePacket(agents[0], document.getElementById('deviceA'), 'bg-gray-500');
+                        animatePacket(agents[1], document.getElementById('deviceB'), 'bg-gray-500');
+                        animatePacket(agents[1], document.getElementById('deviceC'), 'bg-gray-500');
+                        devices.forEach(id => document.getElementById(`device${id}`).classList.add('highlight'));
+                        break;
+                    case 'encode':
+                        streamRing.innerHTML = ''; // Clear stream
+                        devices.forEach(id => {
+                            const deviceEl = document.getElementById(`device${id}`);
+                            deviceEl.classList.add('highlight');
+                            for(let i=0; i<10; i++){
+                                const areaKey = Object.keys(semanticAreas)[Math.floor(Math.random() * 3)];
+                                const color = semanticAreas[areaKey].color;
+                                animatePacket(deviceEl, streamRing, color, 500, `<i class="fas fa-lock text-white/50 text-[6px]"></i>`);
+                                setTimeout(() => addPacketToStream(color), 500);
+                            }
+                        });
+                        break;
+                    case 'extract':
+                        orchestrator.classList.add('highlight');
+                        const area = semanticAreas[step.area];
+                        freqQueueEl.className = `mt-1 px-3 py-1 rounded-full font-bold text-sm transition-colors duration-300 ${area.color}`;
+                        freqQueueEl.textContent = area.name.toUpperCase();
+                        
+                        Array.from(streamRing.children).forEach(packet => {
+                            if (packet.classList.contains(area.color)) {
+                                const startRect = packet.getBoundingClientRect();
+                                packet.style.opacity = '0'; // Hide original packet
+                                animatePacket(packet, orchestrator, area.color, 1000, `<i class="fas fa-lock text-white/50 text-[6px]"></i>`);
+                                setTimeout(() => packet.remove(), 1050);
+                            }
+                        });
+                        break;
+                    case 'dispatch':
+                        cudaBlock.classList.add('highlight');
+                        const dispatchArea = semanticAreas[step.area];
+                        for(let i=0; i<10; i++) {
+                            animatePacket(orchestrator, cudaBlock, dispatchArea.color, 500);
+                        }
+                        setTimeout(() => {
+                            Array.from(cudaGrid.children).forEach((core, i) => {
+                                setTimeout(() => {
+                                    core.style.backgroundColor = dispatchArea.hex;
+                                    setTimeout(() => core.style.backgroundColor = '#374151', 500);
+                                }, i * 20);
+                            });
+                        }, 500);
+                        break;
+                    case 'augment':
+                         devices.forEach(id => {
+                             const deviceEl = document.getElementById(`device${id}`);
+                             animateIllumination(orchestrator, deviceEl);
+                         });
+                        break;
+                }
+            } else {
+                 freqQueueEl.className = `mt-1 px-3 py-1 rounded-full bg-gray-700 text-white font-bold text-sm transition-colors duration-300`;
+                 freqQueueEl.textContent = 'IDLE';
+            }
+        }
+
+        function resetState() {
+            currentStep = -1;
+            nextBtn.textContent = 'Start';
+            explainerText.textContent = 'Click "Start" to begin the simulation.';
+            document.querySelectorAll('.panel.highlight').forEach(el => el.classList.remove('highlight'));
+            freqQueueEl.className = `mt-1 px-3 py-1 rounded-full bg-gray-700 text-white font-bold text-sm transition-colors duration-300`;
+            freqQueueEl.textContent = 'IDLE';
+            streamRing.innerHTML = '';
+        }
+
+        setup();
+        nextBtn.addEventListener('click', runStep);
+
+    </script>
+</body>
+</html>
